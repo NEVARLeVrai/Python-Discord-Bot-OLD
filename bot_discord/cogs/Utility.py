@@ -35,7 +35,7 @@ class utility(commands.Cog):
         # Joue chaque partie du texte
         for part in text_parts:
             vc.play(discord.FFmpegPCMAudio(
-                executable="C:/ProgramData/chocolatey/lib/ffmpeg-full/tools/ffmpeg/bin/ffmpeg.exe",
+                executable="C:/Users/Danie/Mon Drive/Bot Python Discord/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe",
                 source=f"http://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl={lang}&q={part}",
                 options=f"-af volume={vol}"
             ))
@@ -54,34 +54,19 @@ class utility(commands.Cog):
             if ctx.author.voice:
                 vc = await ctx.author.voice.channel.connect()
             else:
-                embed5 = discord.Embed(title="TTS Play", description="Vous devez être dans un salon vocal pour utiliser cette commande.", color=discord.Color.red())
-                embed5.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed5.set_footer(text=Help.version1)
-                await ctx.send(embed=embed5, delete_after=5)
+                await ctx.send("Vous devez être dans un salon vocal pour utiliser cette commande.", delete_after=5)
                 return
 
-            embed1 = discord.Embed(title="TTS Play", color=discord.Color.green())
-            embed1.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed1.add_field(name="Volume:", value=f"**{vol}**")
-            embed1.add_field(name="Langue:", value=f"**{lang}**")
-            embed1.add_field(name="Dit:", value=f"**{text}**", inline=False)
-            embed1.set_footer(text=Help.version1)
-            await ctx.send(embed=embed1, delete_after=25)
+            await ctx.send(f"**TTS Play**\nVolume: **{vol}**\nLangue: **{lang}**\nDit: **{text}**", delete_after=25)
             await self.send_tts(vc, lang, vol, text)
 
         except Exception as e:
             traceback_str = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
-            embed_error = discord.Embed(title="TTS Play - Erreur", description=f"Une erreur s'est produite lors de la lecture TTS:\n\n```\n{traceback_str}\n```", color=discord.Color.red())
-            embed_error.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed_error.set_footer(text=Help.version1)
-            await ctx.send(embed=embed_error, delete_after=10)
+            await ctx.send(f"Une erreur s'est produite lors de la lecture TTS:\n\n```\n{traceback_str}\n```", delete_after=10)
         finally:
             if vc:
                 await vc.disconnect()
-                embed3 = discord.Embed(title="TTS Play", description="Déconnecté avec succès!", color=discord.Color.green())
-                embed3.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed3.set_footer(text=Help.version1)
-                await ctx.send(embed=embed3, delete_after=5)
+                await ctx.send("Déconnecté avec succès!", delete_after=5)
 
     @commands.command(aliases=["repeat"])
     async def say(self, ctx, destination: typing.Union[discord.TextChannel, discord.Member, str], *, message=None):

@@ -27,24 +27,32 @@ class Youtube(commands.Cog):
 
     @commands.command()
     async def play(self, ctx, url):
+        print("Début de la commande !play")  # DEBUG
         ydl_options = {'format': 'bestaudio', 'noplaylist': 'True'}
 
         voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
+        print(f"voice avant connexion: {voice}")  # DEBUG
 
         if not voice or not voice.is_connected():
             channel = ctx.author.voice.channel
+            print(f"Connexion au salon vocal: {channel}")  # DEBUG
             await channel.connect()
 
         voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
+        print(f"voice après connexion: {voice}")  # DEBUG
 
         with YoutubeDL(ydl_options) as ydl:
+            print(f"Extraction info pour l'URL: {url}")  # DEBUG
             info = ydl.extract_info(url, download=False)
         audio_url = info['url']
+        print(f"audio_url: {audio_url}")  # DEBUG
 
         if voice and (voice.is_playing() or voice.is_paused()):
+            print("Ajout à la file d'attente")  # DEBUG
             self.queue.append({'title': info['title'], 'url': audio_url})
             await ctx.send(f'La vidéo YouTube "{info["title"]}" a été ajoutée à la file d\'attente.')
         else:
+            print("Lecture de la vidéo")  # DEBUG
             voice.play(discord.FFmpegPCMAudio(audio_url, **self.ffmpeg_options), after=lambda e: self.check_queue(ctx))
             voice.is_playing()
             await ctx.send(f'Le bot est en train de jouer : {info["title"]}')
@@ -142,13 +150,13 @@ class Youtube(commands.Cog):
                         result_list.append(f"``{index + 1}. {playlist_title} (playlist de {len(videos)} vidéos)``")
                     else:
                         # Si ce n'est pas une playlist, afficher le titre de la vidéo
-                        result_list.append(f"``{index + 1}. {video['title']} ({video['duration']})``")
+                        result_list.append(f"``{index + 1}. {video['title']} ({video.get('duration', 'durée inconnue')})``")
 
                 # Afficher les résultats dans le message
                 result_message = await ctx.send(f"Résultats de la recherche pour '{query}':\n" + "\n".join(result_list))
 
                 if 'playlist' in info:
-                    playlist_titles = "\n".join([f"``{index + 1}. {video['title']} ({video['duration']})``" for index, video in enumerate(videos)])
+                    playlist_titles = "\n".join([f"``{index + 1}. {video['title']} ({video.get('duration', 'durée inconnue')})``" for index, video in enumerate(videos)])
                     await ctx.send(f"Sous-résultats de la playlist '{playlist_title}':\n{playlist_titles}")
 
                     def check_playlist(message):
