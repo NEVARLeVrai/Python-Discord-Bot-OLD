@@ -10,6 +10,7 @@ import datetime
 import typing
 import asyncio
 import re
+from openai import OpenAI
 
 class utility(commands.Cog):
     def __init__(self, client):
@@ -17,7 +18,7 @@ class utility(commands.Cog):
         self.reponse_en_cours = False  # Variable de verrouillage initialement à False
         with open("C:/Users/danie/Mon Drive/Bot Python Discord/tokengpt.txt", "r") as f:
             GPT_API_KEY = f.read().strip()
-        openai.api_key = GPT_API_KEY
+        self.openai_client = OpenAI(api_key=GPT_API_KEY)
         self.rate_limit_delay = 1  # Délai en secondes entre chaque requête (1 seconde dans cet exemple)
 
         
@@ -242,19 +243,24 @@ class utility(commands.Cog):
             self.reponse_en_cours = False  # Réinitialiser le verrouillage à False
 
     def gpt_reponse(self, question):
-        response = openai.Completion.create(
-            model="text-davinci-003",
-            prompt=question,
-            max_tokens=1000,
-            n=1,
-            stop=None,
-            temperature=1
-        )
-        bot_response = response.choices[0].text.strip()
-        print("\n\nChat GPT:")
-        print(f"Question: {question}")
-        print(f"Réponse: {bot_response}")
-        return bot_response
+        try:
+            response = self.openai_client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "Tu es un assistant IA utile et amical. Réponds en français de manière claire et concise."},
+                    {"role": "user", "content": question}
+                ],
+                max_tokens=1000,
+                temperature=0.7
+            )
+            bot_response = response.choices[0].message.content.strip()
+            print("\n\nChat GPT:")
+            print(f"Question: {question}")
+            print(f"Réponse: {bot_response}")
+            return bot_response
+        except Exception as e:
+            print(f"Erreur GPT: {e}")
+            return f"Désolé, une erreur s'est produite lors de la génération de la réponse: {str(e)}"
         
 
     def nettoyer_texte(self, texte):
@@ -293,16 +299,22 @@ class utility(commands.Cog):
             self.reponse_en_cours = False  # Réinitialiser le verrouillage à False
 
     def dalle_reponse(self, question):
-        response = openai.Image.create(
-        prompt=question,
-        n=1,
-        size="512x512"
-        )
-        bot_response = response['data'][0]['url']
-        print("\n\nDall-E:")
-        print(f"Question: {question}")
-        print(f"Réponse: {bot_response}")
-        return bot_response
+        try:
+            response = self.openai_client.images.generate(
+                model="dall-e-3",
+                prompt=question,
+                n=1,
+                size="1024x1024",
+                quality="standard"
+            )
+            bot_response = response.data[0].url
+            print("\n\nDall-E:")
+            print(f"Question: {question}")
+            print(f"Réponse: {bot_response}")
+            return bot_response
+        except Exception as e:
+            print(f"Erreur DALL-E: {e}")
+            return f"Désolé, une erreur s'est produite lors de la génération de l'image: {str(e)}"
         
 
     @commands.Cog.listener()
