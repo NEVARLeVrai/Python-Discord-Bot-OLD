@@ -228,7 +228,13 @@ class utility(commands.Cog):
                 response = self.gpt_reponse(question)
                 response = self.nettoyer_texte(response)
                 response_with_mention = f"{ctx.author.mention}\n{response}"  # Ajouter la mention à la réponse
-            await ctx.send(response_with_mention)
+                
+                # Gérer les messages trop longs pour Discord (limite de 2000 caractères)
+                if len(response_with_mention) > 2000:
+                    # Diviser le message en plusieurs parties
+                    await self.send_long_message(ctx, response_with_mention)
+                else:
+                    await ctx.send(response_with_mention)
 
             with open("C:/Users/danie/Mon Drive/Bot Python Discord/gptlogs.txt", "a") as f:
                 current_time = datetime.datetime.now()
@@ -245,13 +251,13 @@ class utility(commands.Cog):
     def gpt_reponse(self, question):
         try:
             response = self.openai_client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-5-nano",
                 messages=[
-                    {"role": "system", "content": "Tu es un assistant IA utile et amical. Réponds en français de manière claire et concise."},
+                    {"role": "system", "content": "Tu es un assistant IA utile et amical. Réponds en français de manière détaillée et complète. N'hésite pas à développer tes réponses."},
                     {"role": "user", "content": question}
                 ],
-                max_tokens=1000,
-                temperature=0.7
+                max_completion_tokens=4000,
+                temperature=1
             )
             bot_response = response.choices[0].message.content.strip()
             print("\n\nChat GPT:")
@@ -267,6 +273,33 @@ class utility(commands.Cog):
         # Supprimer les sauts de ligne redondants
         texte_nettoye = "\n".join(line for line in texte.splitlines() if line.strip())
         return texte_nettoye
+
+    async def send_long_message(self, ctx, message):
+        """Divise un message long en plusieurs messages pour respecter la limite de Discord"""
+        max_length = 1900  # Laisser une marge pour la mention
+        parts = []
+        
+        # Diviser le message en parties
+        while len(message) > max_length:
+            # Trouver le dernier saut de ligne avant la limite
+            split_point = message.rfind('\n', 0, max_length)
+            if split_point == -1:
+                # Si pas de saut de ligne, diviser au milieu d'un mot
+                split_point = max_length
+            
+            parts.append(message[:split_point])
+            message = message[split_point:].lstrip()
+        
+        if message:  # Ajouter le reste du message
+            parts.append(message)
+        
+        # Envoyer chaque partie
+        for i, part in enumerate(parts):
+            if i == 0:
+                await ctx.send(part)
+            else:
+                await ctx.send(f"*Suite {i+1}/{len(parts)}:*\n{part}")
+            await asyncio.sleep(0.5)  # Petite pause entre les messages
 
 
 
@@ -321,6 +354,8 @@ class utility(commands.Cog):
     async def on_message(self, message):
         if 'tiktok.com' in message.content:
             await self.process_tiktok_message(message)
+        elif 'instagram.com' in message.content:
+            await self.process_instagram_message(message)
         elif 'twitter.com' in message.content:
             await self.process_twitter_message(message)
         elif 'x.com' in message.content:
@@ -331,29 +366,46 @@ class utility(commands.Cog):
         if tiktok_link:
             original_link = tiktok_link.group(0)
             modified_link = original_link.replace('tiktok.com', 'vxtiktok.com')
-            await self.send_modified_message(message, modified_link)
+            await self.send_modified_message(message, modified_link, "TikTok")
 
 
+
+    async def process_instagram_message(self, message):
+        instagram_link = re.search(r'(https?://(?:www\.)?instagram\.com/\S+)', message.content)
+        if instagram_link:
+            original_link = instagram_link.group(0)
+            # Ne pas traiter les liens /reels/audio/
+            if '/reels/audio/' in original_link:
+                return
+            # Supprimer tout ce qui vient après le dernier /
+            modified_link = original_link.rsplit('/', 1)[0] + '/'
+            modified_link = modified_link.replace('instagram.com', 'vxinstagram.com')
+            await self.send_modified_message(message, modified_link, "Instagram")
 
     async def process_twitter_message(self, message):
         twitter_link = re.search(r'(https?://(?:www\.)?twitter\.com/\S+)', message.content)
         if twitter_link:
             original_link = twitter_link.group(0)
             modified_link = original_link.replace('twitter.com', 'fxtwitter.com')
-            await self.send_modified_message(message, modified_link)
+            await self.send_modified_message(message, modified_link, "X (Twitter)")
 
     async def process_x_message(self, message):
         x_link = re.search(r'(https?://(?:www\.)?x\.com/\S+)', message.content)
         if x_link:
             original_link = x_link.group(0)
             modified_link = original_link.replace('x.com', 'fxtwitter.com')
-            await self.send_modified_message(message, modified_link)
+            await self.send_modified_message(message, modified_link, "X (Twitter)")
 
-    async def send_modified_message(self, message, modified_link):
-        await message.delete()
+    async def send_modified_message(self, message, modified_link, platform):
+        try:
+            await message.delete()
+        except:
+            # Si on ne peut pas supprimer le message (embeds, permissions, etc.), on continue
+            pass
+        
         async with message.channel.typing():
             await asyncio.sleep(1)
-            await message.channel.send(f"{message.author.mention}\n{modified_link}")
+            await message.channel.send(f"[{message.author.display_name} - {platform}]({modified_link})")
                     
 async def setup(client):
     await client.add_cog(utility(client))

@@ -6,19 +6,15 @@ from cogs import Help
 import traceback
 from datetime import datetime
 
-version1="Bot V.0201-24.omega"
-version2 ="`optimization, added give and remove role commands and Happy New Year ❤`"
-
-version3="Bot V.2912-23.beta"
-version4 ="`optimization and added link conversion for tiktok and twiiter(X)`"
-
+version1="Bot V.2910-25"
+version2 ="`optimization, fixed bugs and added new commands`"
 
 
 class Help(commands.Cog):   
     def __init__(self, client):
         self.target_user_id = 745923070736465940  # Replace with your Discord user ID
         self.client = client
-        self.webhook_url = "https://discord.com/api/webhooks/1148243004918865940/ycYikn7M9ULQ0eMcZOwiBmyJt5N9zJCKIMfDdj32yawam4o9GYIOwKqzrsXo_30ArPrs" # Remplacez WEBHOOK
+        self.webhook_url = "https://discord.com/api/webhooks/1433124903397359673/FTyJEbBq0cxVGx_kwaws1D5WRhPVq5MnQgko4ZqbZMqOa6DJoYbZOwpOVkXiV8oFYIQl" # Remplacez WEBHOOK
  
  
      
@@ -146,8 +142,12 @@ class Help(commands.Cog):
         embed_message4.add_field(name="clear, prune", value="clear messages =clear [number] (messages perms only) max 70 messages")
         embed_message4.add_field(name="cleanraidsimple, clr", value="clear raid with channel name =cleanraidsimple [channel name] (messages perms only)")
         embed_message4.add_field(name="cleanraidmultiple, clrs", value="clear raid with datetime =cleanraidmultiple [Y-m-d-H:M] (messages perms only)")
+        embed_message4.add_field(name="warn", value="warn members =warn [@ user] [reason] [count] (messages perms only) - Ex: =warn @user Spam 3")
+        embed_message4.add_field(name="resetwarn, warnreset", value="reset warns =resetwarn [@ user] (messages perms only)")
+        embed_message4.add_field(name="warnboard, warnleaderboard, warnlb", value="leaderboard des warns =warnboard")
         embed_message4.add_field(name="kick", value="kick members =kick [@ user or ID] (kick perms only)")
-        embed_message4.add_field(name="ban", value="ban members =ban [@ user or ID] (ban perms only)")
+        embed_message4.add_field(name="ban", value="ban members =ban [@ user] (ban perms only)")
+        embed_message4.add_field(name="banid", value="ban members =banid [ID] (ban perms only)")
         embed_message4.add_field(name="unban", value="unban members =unban [@ user or ID] (ban perms only)")
         embed_message4.add_field(name="giverole", value="give a role to a members =giverole [@ user or ID] [@ role or ID]  (admins perms only)")
         embed_message4.add_field(name="removerole", value="removerole a role to a members =removerole [@ user or ID] [@ role or ID] (admins perms only)")
@@ -214,12 +214,7 @@ class Help(commands.Cog):
         embed.add_field(name="Last Version", value=version1)
         embed.add_field(name="Update Logs", value=version2)
         embed.add_field(name="", value="")
-        embed.add_field(name="Old Version", value=version3)
-        embed.add_field(name="Update Logs", value=version4)
-        embed.add_field(name="", value="")
-        embed.add_field(name="Preview Version", value="Bot V.0103-23.alpha")
-        embed.add_field(name="Update Logs", value="`Optimisation, First update and alot of new command`")
-        embed.add_field(name="Date format", value="`MM/DD/YY`")
+        embed.add_field(name="Date format", value="`DD/MM/YYYY`")
         with open("./Autres/version.jpg", "rb") as f:
             image_data = f.read()
         embed.set_thumbnail(url="attachment://version.jpg")
