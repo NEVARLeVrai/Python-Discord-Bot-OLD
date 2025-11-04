@@ -196,9 +196,11 @@ bot_discord/
 
 ## 📝 Version
 
-**Version actuelle :** Bot V.2910-25
+**Version actuelle :** Bot V.0411-25
 
-**Update Logs :** `optimization, fixed bugs and added new commands`
+**Status :** 🟢 Stable
+
+**Update Logs :** `refactoring complet du code, optimisation et amélioration de la structure`
 
 ## 🔧 Commandes slash
 
