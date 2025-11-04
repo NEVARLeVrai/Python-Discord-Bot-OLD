@@ -12,10 +12,10 @@ class Leveling(commands.Cog):
         
     @commands.Cog.listener()
     async def on_ready(self):
-        print("Leveling.py is ready")
-        
+        # Utiliser le chemin centralisé depuis main.py
+        levels_path = self.bot.paths['levels_json']
         # Chargement du fichier JSON qui stocke les données de niveau
-        with open('./Autres/levels.json', 'r') as f:
+        with open(levels_path, 'r') as f:
             self.levels = json.load(f)
  
     @commands.Cog.listener()
@@ -46,8 +46,10 @@ class Leveling(commands.Cog):
             embed.set_footer(text=Help.version1)
             await message.channel.send(embed=embed)
 
+        # Utiliser le chemin centralisé depuis main.py
+        levels_path = self.bot.paths['levels_json']
         # Enregistre les données de niveau dans le fichier JSON
-        with open('./Autres/levels.json', 'w') as f:
+        with open(levels_path, 'w') as f:
             json.dump(self.levels, f)
 
     # Commande pour afficher le niveau de l'utilisateur

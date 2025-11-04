@@ -12,17 +12,10 @@ version2 ="`optimization, fixed bugs and added new commands`"
 
 class Help(commands.Cog):   
     def __init__(self, client):
-        self.target_user_id = 745923070736465940  # Replace with your Discord user ID
+        self.target_user_id = client.config['target_user_id']  # Replace with your Discord user ID
         self.client = client
-        self.webhook_url = "https://discord.com/api/webhooks/1433124903397359673/FTyJEbBq0cxVGx_kwaws1D5WRhPVq5MnQgko4ZqbZMqOa6DJoYbZOwpOVkXiV8oFYIQl" # Remplacez WEBHOOK
+        self.webhook_url = client.config['webhook_url'] # Remplacez WEBHOOK
  
- 
-     
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print("Help.py is ready")
-        
-
 
     @commands.command(name="report")
     async def report(self, ctx, *, message: str):
@@ -37,7 +30,7 @@ class Help(commands.Cog):
         headers = {
             "Content-Type": "application/json"
         }
-        response = requests.post(self.webhook_url, json=data, headers=headers)
+        response = requests.post(self.client.config['webhook_url'], json=data, headers=headers)
         
         if response.status_code == 204:
             # Envoyer un message à l'utilisateur avec le numéro de ticket
@@ -81,11 +74,11 @@ class Help(commands.Cog):
             icon_url=ctx.author.avatar
         )
 
-        embed_message.add_field(name="helps", value="help show this message =help")
-        embed_message.add_field(name="ping", value="ping the bot =ping")
-        embed_message.add_field(name="version, v", value="Bot version =version",)
-        embed_message.add_field(name="stop", value="stop the bot =stop (only owner)")
-        embed_message.add_field(name="report", value="report only for report a bug or make a feedback =report [something to send]")
+        embed_message.add_field(name="helps", value="Affiche ce message =helps")
+        embed_message.add_field(name="ping", value="Affiche le ping du bot =ping")
+        embed_message.add_field(name="version, v", value="Affiche la version du bot =version")
+        embed_message.add_field(name="stop", value="Arrête le bot =stop (owner only)")
+        embed_message.add_field(name="report", value="Signale un bug ou feedback =report [message]")
         embed_message.set_footer(text=version1)
 
         embed_message2 = discord.Embed(
@@ -99,16 +92,16 @@ class Help(commands.Cog):
             icon_url=ctx.author.avatar
         )
         
-        embed_message2.add_field(name="slist", value="slist list all soundboard =slist 4")
-        embed_message2.add_field(name="splay", value="splay make play soundboard =splay [number]")
-        embed_message2.add_field(name="sjoin", value="sjoin make join bot =sjoin [need to be in a vc]")
-        embed_message2.add_field(name="sleave", value="sleave make leave bot =sleave")
-        embed_message2.add_field(name="sstop", value="stop bot making soundboard =sstop")
-        embed_message2.add_field(name="srandom", value="srandom play a random soundboard between 1 and 5 minutes =srandom")
-        embed_message2.add_field(name="srandomskip", value="skip skip random soundboard =srandomskip [only when a sound is playing]")
-        embed_message2.add_field(name="srandomstop", value="stops stop random soundboard =srandomstop")
-        embed_message2.add_field(name="vkick", value="vkick kick user in a vc =vkick [@ID] (admin perms only)")
-        embed_message2.add_field(name="tts", value="tts make bot say something with googletts voice in vc =tts [langue] [texte]")
+        embed_message2.add_field(name="slist", value="Liste tous les sons disponibles =slist")
+        embed_message2.add_field(name="splay", value="Joue un son =splay [numéro] (ex: =splay 1)")
+        embed_message2.add_field(name="sjoin", value="Fait rejoindre le bot au salon vocal =sjoin (besoin d'être en vocal)")
+        embed_message2.add_field(name="sleave", value="Fait quitter le bot du salon vocal =sleave")
+        embed_message2.add_field(name="sstop", value="Arrête le son en cours =sstop")
+        embed_message2.add_field(name="srandom", value="Joue des sons aléatoires toutes les 1-5 minutes =srandom")
+        embed_message2.add_field(name="srandomskip", value="Skip le son aléatoire en cours =srandomskip")
+        embed_message2.add_field(name="srandomstop", value="Arrête la lecture aléatoire =srandomstop")
+        embed_message2.add_field(name="vkick", value="Expulse un utilisateur du vocal =vkick [@user] ou sans mention pour tous (admin perms only)")
+        embed_message2.add_field(name="tts", value="Fait parler le bot =tts [langue] [volume] [texte] (ex: =tts fr 3.0 Bonjour)")
         
         
         embed_message3 = discord.Embed(
@@ -123,9 +116,9 @@ class Help(commands.Cog):
         )
         
 
-        embed_message3.add_field(name="level, lvl", value="level see your ranking =level [@ user]")
-        embed_message3.add_field(name="resetlevel, rsl", value="resetlevel reset member level =resetlevel [@ user] (messages perms only)")
-        embed_message3.add_field(name="levelsettings, lvls", value="levelsettings enable or disable leveling system (admins perms only)")
+        embed_message3.add_field(name="level, lvl", value="Voir votre niveau =level [@user] (optionnel)")
+        embed_message3.add_field(name="resetlevel, rsl", value="Reset tous les niveaux =resetlevel (messages perms only)")
+        embed_message3.add_field(name="levelsettings, lvls", value="Active/désactive le système de leveling =levelsettings (admins perms only)")
         
         embed_message4 = discord.Embed(
         title="Helps Mods",
@@ -139,18 +132,19 @@ class Help(commands.Cog):
         )
         
       
-        embed_message4.add_field(name="clear, prune", value="clear messages =clear [number] (messages perms only) max 70 messages")
-        embed_message4.add_field(name="cleanraidsimple, clr", value="clear raid with channel name =cleanraidsimple [channel name] (messages perms only)")
-        embed_message4.add_field(name="cleanraidmultiple, clrs", value="clear raid with datetime =cleanraidmultiple [Y-m-d-H:M] (messages perms only)")
-        embed_message4.add_field(name="warn", value="warn members =warn [@ user] [reason] [count] (messages perms only) - Ex: =warn @user Spam 3")
-        embed_message4.add_field(name="resetwarn, warnreset", value="reset warns =resetwarn [@ user] (messages perms only)")
-        embed_message4.add_field(name="warnboard, warnleaderboard, warnlb", value="leaderboard des warns =warnboard")
-        embed_message4.add_field(name="kick", value="kick members =kick [@ user or ID] (kick perms only)")
-        embed_message4.add_field(name="ban", value="ban members =ban [@ user] (ban perms only)")
-        embed_message4.add_field(name="banid", value="ban members =banid [ID] (ban perms only)")
-        embed_message4.add_field(name="unban", value="unban members =unban [@ user or ID] (ban perms only)")
-        embed_message4.add_field(name="giverole", value="give a role to a members =giverole [@ user or ID] [@ role or ID]  (admins perms only)")
-        embed_message4.add_field(name="removerole", value="removerole a role to a members =removerole [@ user or ID] [@ role or ID] (admins perms only)")
+        embed_message4.add_field(name="clear, prune", value="Supprime des messages =clear [nombre] (messages perms only) max 70 messages")
+        embed_message4.add_field(name="cleanraidsimple, clr", value="Supprime un salon par nom =cleanraidsimple [nom] (messages perms only)")
+        embed_message4.add_field(name="cleanraidmultiple, clrs", value="Supprime des salons par date =cleanraidmultiple [date] [heure] (messages perms only) ex: =cleanraidmultiple 2024-01-01 14h30")
+        embed_message4.add_field(name="warn", value="Avertir un membre =warn [@user] [raison] [nombre] (messages perms only) ex: =warn @user Spam 3")
+        embed_message4.add_field(name="resetwarn, warnreset", value="Reset les warns d'un membre =resetwarn [@user] (messages perms only)")
+        embed_message4.add_field(name="warnboard, warnleaderboard, warnlb", value="Affiche le leaderboard des warns =warnboard")
+        embed_message4.add_field(name="kick", value="Expulse un membre =kick [@user] [raison] (kick perms only)")
+        embed_message4.add_field(name="ban", value="Bannit un membre =ban [@user ou ID] [raison] (ban perms only)")
+        embed_message4.add_field(name="unban", value="Débannit un membre =unban [ID] (ban perms only)")
+        embed_message4.add_field(name="giverole", value="Donne un rôle =giverole [@user] [@role] (owner only)")
+        embed_message4.add_field(name="removerole", value="Enlève un rôle =removerole [@user] [@role] (owner only)")
+        embed_message4.add_field(name="mp", value="Envoie un message privé =mp [@user ou ID] [message]")
+        embed_message4.add_field(name="spam", value="Spam des messages =spam [nombre] [#salon ou mention] [message] (admin perms only)")
         
         embed_message5 = discord.Embed(
         title="Helps Utility",
@@ -164,13 +158,12 @@ class Help(commands.Cog):
         )
         
       
-        embed_message5.add_field(name="gpt", value="use gpt in discord =gpt [Something to ask]")
-        embed_message5.add_field(name="dalle", value="use dalle in discord =dalle [Something to ask]")
-        embed_message5.add_field(name="spam", value="spam in chat =spam [Number of Times] [Something to say] (admin perms only)")
-        embed_message5.add_field(name="repeat, say", value="Repeat messages =repeat [Something to repeat]")
-        embed_message5.add_field(name="8ball, magicball", value="8ball game =8ball [Something to answer]")
-        embed_message5.add_field(name="hilaire", value="hilaire game =hilaire")
-        embed_message5.add_field(name="deldms, delmp", value="deldms clear dms with bot =deldms (admin perms only)")
+        embed_message5.add_field(name="gpt", value="Utilise GPT =gpt [votre question]")
+        embed_message5.add_field(name="dalle", value="Génère une image avec DALL-E =dalle [votre prompt]")
+        embed_message5.add_field(name="repeat, say", value="Envoie un message =repeat [#salon ou @user] [message]")
+        embed_message5.add_field(name="8ball, magicball", value="Pose une question à la boule magique =8ball [votre question]")
+        embed_message5.add_field(name="hilaire", value="Jeu Hilaire =hilaire")
+        embed_message5.add_field(name="deldms, delmp", value="Supprime tous les DMs du bot =deldms (admin perms only)")
         
         embed_message6 = discord.Embed(
             title="Helps MP",
@@ -183,22 +176,47 @@ class Help(commands.Cog):
             icon_url=ctx.author.avatar
         )
 
-        embed_message6.add_field(name="helps", value="help show this message =help")
-        embed_message6.add_field(name="ping", value="ping the bot =ping")
-        embed_message6.add_field(name="version, v", value="Bot version =version",)
-        embed_message6.add_field(name="stop", value="stop the bot =stop (only owner)")
-        embed_message6.add_field(name="report", value="report only for report a bug or make a feedback =report [something to send]")
-        embed_message6.add_field(name="gpt", value="use gpt in discord =gpt [Something to ask]")
-        embed_message6.add_field(name="dalle", value="use dalle in discord =dalle [Something to ask]")
+        embed_message6.add_field(name="helps", value="Affiche ce message =helps")
+        embed_message6.add_field(name="ping", value="Affiche le ping du bot =ping")
+        embed_message6.add_field(name="version, v", value="Affiche la version du bot =version")
+        embed_message6.add_field(name="stop", value="Arrête le bot =stop (owner only)")
+        embed_message6.add_field(name="report", value="Signale un bug ou feedback =report [message]")
+        embed_message6.add_field(name="gpt", value="Utilise GPT =gpt [votre question]")
+        embed_message6.add_field(name="dalle", value="Génère une image avec DALL-E =dalle [votre prompt]")
        
               
-        with open("./Autres/info.png", "rb") as f:
+        # Utiliser le chemin centralisé depuis main.py
+        with open(self.client.paths['info_png'], "rb") as f:
             image_data = f.read()
         embed_message6.set_thumbnail(url="attachment://info.png")
+
+        embed_message7 = discord.Embed(
+            title="Helps YouTube",
+            description="Toutes les commandes YouTube",
+            color=discord.Color.random()
+        )
+
+        embed_message7.set_author(
+            name=f"Demandé par {ctx.author.name}",
+            icon_url=ctx.author.avatar
+        )
+        
+        embed_message7.add_field(name="leave", value="Déconnecte le bot du vocal =leave")
+        embed_message7.add_field(name="play", value="Joue une vidéo YouTube =play [URL]")
+        embed_message7.add_field(name="search", value="Recherche une vidéo YouTube =search [recherche]")
+        embed_message7.add_field(name="skip", value="Skip la vidéo en cours =skip")
+        embed_message7.add_field(name="stopm", value="Arrête la lecture =stopm")
+        embed_message7.add_field(name="pause", value="Met en pause la vidéo =pause")
+        embed_message7.add_field(name="resume", value="Reprend la vidéo =resume")
+        embed_message7.add_field(name="queue", value="Affiche la file d'attente =queue")
+        embed_message7.add_field(name="clearq", value="Vide la file d'attente =clearq")
+        embed_message7.add_field(name="loop", value="Active/désactive la boucle =loop")
+        embed_message7.set_footer(text=version1)
 
         await ctx.send(embed=embed_message)
         await ctx.send(embed=embed_message4)
         await ctx.send(embed=embed_message5)
+        await ctx.send(embed=embed_message7)
         await ctx.send(embed=embed_message2)
         await ctx.send(embed=embed_message3)
         await ctx.send(embed=embed_message6, file=discord.File(io.BytesIO(image_data), "info.png"))
@@ -215,7 +233,8 @@ class Help(commands.Cog):
         embed.add_field(name="Update Logs", value=version2)
         embed.add_field(name="", value="")
         embed.add_field(name="Date format", value="`DD/MM/YYYY`")
-        with open("./Autres/version.jpg", "rb") as f:
+        # Utiliser le chemin centralisé depuis main.py
+        with open(self.client.paths['version_jpg'], "rb") as f:
             image_data = f.read()
         embed.set_thumbnail(url="attachment://version.jpg")
         await ctx.send(embed=embed, file=discord.File(io.BytesIO(image_data), "version.jpg"))
@@ -247,7 +266,20 @@ class Help(commands.Cog):
             if content.startswith("=") or message.mention_everyone or self.client.user in message.mentions:
                 return  # Ignore les messages de commande ou les mentions
             
-            target_user = self.client.get_user(self.target_user_id)
+            # Vérifier si c'est une réponse à un MP initié par la commande =mp
+            mods_cog = self.client.get_cog('Mods')
+            if mods_cog and hasattr(mods_cog, 'mp_conversations'):
+                if user.id in mods_cog.mp_conversations:
+                    # C'est une réponse à un MP initié par =mp
+                    original_sender_id = mods_cog.mp_conversations[user.id]
+                    original_sender = self.client.get_user(original_sender_id)
+                    
+                    if original_sender:
+                        await original_sender.send(f"**Réponse de {user} ({user.mention}):**\n\n{content}")
+                    return
+            
+            # Sinon, forwarder au target_user_id comme avant
+            target_user = self.client.get_user(self.client.config['target_user_id'])
             
             if target_user:
                 await target_user.send(f"Message privé de **{user}**: \n\n{content}")

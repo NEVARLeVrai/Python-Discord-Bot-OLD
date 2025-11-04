@@ -17,17 +17,19 @@ class Mods(commands.Cog):
         self.client = client
         self.protected_role_id = 1236660715151167548  # ID du rôle à enlever
         self.blocked_user_id = 440168985615400984  # ID de l'utilisateur bloqué
+        self.mp_conversations = {}  # {user_id_receveur: user_id_expediteur} pour tracker les conversations MP
     
     @commands.Cog.listener()
     async def on_ready(self):
-        print("Mods.py is ready")
+            # Utiliser le chemin centralisé depuis main.py
+        warns_path = self.client.paths['warns_json']
         # Chargement du fichier JSON qui stocke les warns
-        if os.path.exists('./Autres/warns.json'):
-            with open('./Autres/warns.json', 'r') as f:
+        if os.path.exists(warns_path):
+            with open(warns_path, 'r') as f:
                 self.warns = json.load(f)
         else:
             self.warns = {}
-            with open('./Autres/warns.json', 'w') as f:
+            with open(warns_path, 'w') as f:
                 json.dump(self.warns, f)
         
         # Démarrer la tâche pour vérifier les timeouts terminés
@@ -35,7 +37,9 @@ class Mods(commands.Cog):
     
     def save_warns(self):
         """Sauvegarde les warns dans le fichier JSON"""
-        with open('./Autres/warns.json', 'w') as f:
+        # Utiliser le chemin centralisé depuis main.py
+        warns_path = self.client.paths['warns_json']
+        with open(warns_path, 'w') as f:
             json.dump(self.warns, f)
     
     async def remove_protected_role(self, member, guild):
@@ -106,6 +110,18 @@ class Mods(commands.Cog):
     @commands.has_permissions(kick_members=True)
     async def kick(self, ctx, member: discord.Member, *, modreaseon):
         await ctx.message.delete()
+        
+        # Envoyer un MP avant le kick
+        try:
+            kick_dm = discord.Embed(title="Expulsion", description=f"Vous avez été expulsé(e) du serveur **{ctx.guild.name}**", color=discord.Color.yellow())
+            kick_dm.add_field(name="Modérateur:", value=f"{ctx.author.name} ({ctx.author.mention})", inline=False)
+            kick_dm.add_field(name="Raison:", value=modreaseon, inline=False)
+            kick_dm.set_footer(text=Help.version1)
+            await member.send(embed=kick_dm)
+        except discord.Forbidden:
+            # L'utilisateur a les DMs désactivés, on continue quand même
+            pass
+        
         await ctx.guild.kick(member)
         
         conf_embed = discord.Embed(title= "Réussi!", description="", color=discord.Color.yellow())
@@ -121,9 +137,17 @@ class Mods(commands.Cog):
     async def warn(self, ctx, member: discord.Member, *, args=None):
         await ctx.message.delete()
         
-        # Vérifier si l'auteur ou le membre ciblé est bloqué
-        if ctx.author.id == self.blocked_user_id or member.id == self.blocked_user_id:
-            embed = discord.Embed(title="Erreur", description=f"Cet utilisateur ne peut pas utiliser ou être averti par cette commande.", color=discord.Color.red())
+        # Vérifier si l'auteur essaie de se warn lui-même
+        if ctx.author.id == member.id:
+            embed = discord.Embed(title="Erreur", description=f"Vous ne pouvez pas vous avertir vous-même.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+            return
+        
+        # Vérifier si l'auteur est bloqué (ne peut pas utiliser la commande)
+        if ctx.author.id == self.blocked_user_id:
+            embed = discord.Embed(title="Erreur", description=f"Vous n'avez pas accès à cette commande.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
             embed.set_footer(text=Help.version1)
             await ctx.send(embed=embed, delete_after=10)
@@ -176,8 +200,6 @@ class Mods(commands.Cog):
         total_warn_count = self.warns[guild_id][member_id]["count"]
         self.save_warns()
         
-        await ctx.send(f"{member.mention}")
-        
         conf_embed = discord.Embed(title= "Réussi!", description="", color=discord.Color.orange())
         conf_embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
         
@@ -191,6 +213,21 @@ class Mods(commands.Cog):
         conf_embed.set_footer(text=Help.version1)
         
         await ctx.send(embed=conf_embed)
+        
+        # Envoyer un MP à l'utilisateur averti
+        try:
+            warn_dm = discord.Embed(title="Avertissement", description=f"Vous avez reçu un avertissement sur **{ctx.guild.name}**", color=discord.Color.orange())
+            if warn_count_to_add > 1:
+                warn_dm.add_field(name="Avertissements:", value=f"Vous avez reçu **{warn_count_to_add}** avertissements de {ctx.author.mention}.", inline=False)
+            else:
+                warn_dm.add_field(name="Modérateur:", value=f"{ctx.author.name} ({ctx.author.mention})", inline=False)
+            warn_dm.add_field(name="Raison:", value=reason, inline=False)
+            warn_dm.add_field(name="Nombre total de warns:", value=f"{total_warn_count}", inline=False)
+            warn_dm.set_footer(text=Help.version1)
+            await member.send(embed=warn_dm)
+        except discord.Forbidden:
+            # L'utilisateur a les DMs désactivés, on continue quand même
+            pass
         
         # Appliquer les actions automatiques selon le nombre de warns
         previous_warn_count = total_warn_count - warn_count_to_add
@@ -413,32 +450,47 @@ class Mods(commands.Cog):
         
     @commands.command()
     @commands.has_permissions(ban_members=True)
-    async def ban(self, ctx, member: discord.Member, *, modreaseon):
+    async def ban(self, ctx, target: typing.Union[discord.Member, int], *, modreaseon):
         await ctx.message.delete()
-        await ctx.guild.ban(member)
+        
+        # Vérifier si c'est un ID (int) ou un Member
+        if isinstance(target, int):
+            # Cas banid : bannir par ID
+            user_id = target
+            user_obj = discord.Object(id=user_id)
+            await ctx.guild.ban(user_obj)
+            
+            conf_embed = discord.Embed(title= "Réussi!", description="", color=discord.Color.red())
+            conf_embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            conf_embed.add_field(name="Banni:", value=f"<@{user_id}> a été banni par {ctx.author.mention}.", inline=False)
+            conf_embed.add_field(name="Raison:", value=modreaseon, inline=False)
+            conf_embed.set_footer(text=Help.version1)
+            
+            await ctx.send(embed=conf_embed)
+        else:
+            # Cas ban normal : bannir un Member (avec DM possible)
+            member = target
+            
+            # Envoyer un MP avant le ban
+            try:
+                ban_dm = discord.Embed(title="Bannissement", description=f"Vous avez été banni(e) du serveur **{ctx.guild.name}**", color=discord.Color.red())
+                ban_dm.add_field(name="Modérateur:", value=f"{ctx.author.name} ({ctx.author.mention})", inline=False)
+                ban_dm.add_field(name="Raison:", value=modreaseon, inline=False)
+                ban_dm.set_footer(text=Help.version1)
+                await member.send(embed=ban_dm)
+            except discord.Forbidden:
+                # L'utilisateur a les DMs désactivés, on continue quand même
+                pass
+            
+            await ctx.guild.ban(member)
 
-        conf_embed = discord.Embed(title= "Réussi!", description="", color=discord.Color.red())
-        conf_embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        conf_embed.add_field(name="Banni:", value=f"{member.mention} a été banni par {ctx.author.mention}.", inline=False)
-        conf_embed.add_field(name="Raison:", value=modreaseon, inline=False)
-        conf_embed.set_footer(text=Help.version1)
-        
-        await ctx.send(embed=conf_embed)
-        
-    @commands.command(name="banid")
-    @commands.has_permissions(ban_members=True)
-    async def banid(self, ctx, user_id: int, *, modreaseon):
-        await ctx.message.delete()
-        user_obj = discord.Object(id=user_id)
-        await ctx.guild.ban(user_obj)
-
-        conf_embed = discord.Embed(title= "Réussi!", description="", color=discord.Color.red())
-        conf_embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        conf_embed.add_field(name="Banni:", value=f"<@{user_id}> a été banni par {ctx.author.mention}.", inline=False)
-        conf_embed.add_field(name="Raison:", value=modreaseon, inline=False)
-        conf_embed.set_footer(text=Help.version1)
-        
-        await ctx.send(embed=conf_embed)
+            conf_embed = discord.Embed(title= "Réussi!", description="", color=discord.Color.red())
+            conf_embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            conf_embed.add_field(name="Banni:", value=f"{member.mention} a été banni par {ctx.author.mention}.", inline=False)
+            conf_embed.add_field(name="Raison:", value=modreaseon, inline=False)
+            conf_embed.set_footer(text=Help.version1)
+            
+            await ctx.send(embed=conf_embed)
         
     @commands.command(name="unban")
     @commands.guild_only()
@@ -594,6 +646,47 @@ class Mods(commands.Cog):
         except discord.HTTPException as e:
             await ctx.send(f"Une erreur s'est produite : {e}")
 
+    @commands.command()
+    async def mp(self, ctx, target: typing.Union[discord.Member, int], *, message: str):
+        await ctx.message.delete()
+        
+        # Si target est un int, c'est un ID, sinon c'est un Member
+        if isinstance(target, int):
+            try:
+                target_user = await self.client.fetch_user(target)
+            except discord.NotFound:
+                embed = discord.Embed(title="Erreur", description="Utilisateur introuvable.", color=discord.Color.red())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+                return
+        else:
+            target_user = target
+        
+        try:
+            # Envoyer le message en MP
+            await target_user.send(f"**Message de {ctx.author.name} ({ctx.author.mention}):**\n\n{message}")
+            
+            # Sauvegarder la conversation pour que les réponses soient forwardées
+            self.mp_conversations[target_user.id] = ctx.author.id
+            
+            # Confirmation
+            embed = discord.Embed(title="Message envoyé", description=f"Message envoyé en MP à {target_user.mention}", color=discord.Color.green())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.add_field(name="Message:", value=message[:500] + ("..." if len(message) > 500 else ""), inline=False)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+            
+        except discord.Forbidden:
+            embed = discord.Embed(title="Erreur", description=f"Impossible d'envoyer un message à {target_user.mention}. Les messages privés sont peut-être désactivés.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+        except Exception as e:
+            embed = discord.Embed(title="Erreur", description=f"Une erreur s'est produite: {str(e)}", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
 
     @cleanraidsimple.error
     async def cleanraidsimple_error(self, ctx, error):

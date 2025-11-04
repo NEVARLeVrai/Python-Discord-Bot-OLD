@@ -3,6 +3,7 @@ from discord.ext import commands, tasks
 from discord import FFmpegPCMAudio
 from yt_dlp import YoutubeDL
 import asyncio
+from cogs import Help
 
 class Youtube(commands.Cog):
     def __init__(self, bot):
@@ -10,52 +11,67 @@ class Youtube(commands.Cog):
         self.pause_state = False
         self.queue = []
         self.loop_state = False  # Variable pour suivre l'état de la boucle
+        # Utiliser le chemin centralisé depuis main.py
+        ffmpeg_path = bot.paths['ffmpeg_exe']
         self.ffmpeg_options = {
             'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
             'options': '-vn',
-            'executable': r'C:/Users/Danie/Mon Drive/Bot Python Discord/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe'
+            'executable': ffmpeg_path
         }
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print("Youtube.py is ready")
-        
     @commands.command()
     async def leave(self, ctx):
+        await ctx.message.delete()
         await ctx.voice_client.disconnect()
-        await ctx.send('Déconnecté du salon vocale')
+        embed = discord.Embed(title="YouTube - Déconnexion", description="Déconnecté du salon vocal.", color=discord.Color.red())
+        embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
 
     @commands.command()
     async def play(self, ctx, url):
-        print("Début de la commande !play")  # DEBUG
+        await ctx.message.delete()
+        
+        if not ctx.author.voice:
+            embed = discord.Embed(title="YouTube - Erreur", description="Vous devez être connecté à un salon vocal pour utiliser cette commande.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+            return
+        
         ydl_options = {'format': 'bestaudio', 'noplaylist': 'True'}
 
         voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
-        print(f"voice avant connexion: {voice}")  # DEBUG
 
         if not voice or not voice.is_connected():
             channel = ctx.author.voice.channel
-            print(f"Connexion au salon vocal: {channel}")  # DEBUG
             await channel.connect()
 
         voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
-        print(f"voice après connexion: {voice}")  # DEBUG
 
-        with YoutubeDL(ydl_options) as ydl:
-            print(f"Extraction info pour l'URL: {url}")  # DEBUG
-            info = ydl.extract_info(url, download=False)
-        audio_url = info['url']
-        print(f"audio_url: {audio_url}")  # DEBUG
+        try:
+            with YoutubeDL(ydl_options) as ydl:
+                info = ydl.extract_info(url, download=False)
+            audio_url = info['url']
 
-        if voice and (voice.is_playing() or voice.is_paused()):
-            print("Ajout à la file d'attente")  # DEBUG
-            self.queue.append({'title': info['title'], 'url': audio_url})
-            await ctx.send(f'La vidéo YouTube "{info["title"]}" a été ajoutée à la file d\'attente.')
-        else:
-            print("Lecture de la vidéo")  # DEBUG
-            voice.play(discord.FFmpegPCMAudio(audio_url, **self.ffmpeg_options), after=lambda e: self.check_queue(ctx))
-            voice.is_playing()
-            await ctx.send(f'Le bot est en train de jouer : {info["title"]}')
+            if voice and (voice.is_playing() or voice.is_paused()):
+                self.queue.append({'title': info['title'], 'url': audio_url})
+                embed = discord.Embed(title="YouTube - File d'attente", description=f'La vidéo YouTube **"{info["title"]}"** a été ajoutée à la file d\'attente.', color=discord.Color.blue())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+            else:
+                voice.play(discord.FFmpegPCMAudio(audio_url, **self.ffmpeg_options), after=lambda e: self.check_queue(ctx))
+                voice.is_playing()
+                embed = discord.Embed(title="YouTube - Lecture", description=f'Le bot est en train de jouer : **{info["title"]}**', color=discord.Color.green())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+        except Exception as e:
+            embed = discord.Embed(title="YouTube - Erreur", description=f"Une erreur s'est produite : {str(e)}", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
 
     def check_queue(self, ctx):
         async def inner_check_queue():
@@ -65,7 +81,9 @@ class Youtube(commands.Cog):
                 voice.play(discord.FFmpegPCMAudio(next_video['url'], **self.ffmpeg_options), after=lambda e: self.check_queue(ctx))
                 voice.is_playing()
                 asyncio.create_task(self.check_empty_channel(ctx))
-                await ctx.send(f'Vidéo YouTube suivante dans la file d\'attente : {next_video["title"]}')
+                embed = discord.Embed(title="YouTube - File d'attente", description=f'Vidéo YouTube suivante dans la file d\'attente : **{next_video["title"]}**', color=discord.Color.blue())
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
 
         self.bot.loop.create_task(inner_check_queue())
 
@@ -74,59 +92,135 @@ class Youtube(commands.Cog):
         voice_channel = ctx.voice_client.channel
         if len(voice_channel.members) == 1:
             await ctx.voice_client.disconnect()
-            await ctx.send("Aucun utilisateur détecté pendant 2 minutes. Je quitte le canal vocal.")
+            embed = discord.Embed(title="YouTube - Déconnexion automatique", description="Aucun utilisateur détecté pendant 2 minutes. Je quitte le canal vocal.", color=discord.Color.orange())
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
 
     @commands.command()
     async def skip(self, ctx):
+        await ctx.message.delete()
         voice_client = ctx.voice_client
         if voice_client.is_playing():
             next_video = self.queue[0] if self.queue else None
             voice_client.stop()
             if next_video:
-                await ctx.send(f"Vidéo YouTube suivante dans la file d'attente : {next_video['title']}")
+                embed = discord.Embed(title="YouTube - Skip", description=f"Vidéo YouTube suivante dans la file d'attente : **{next_video['title']}**", color=discord.Color.green())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
             else:
-                await ctx.send("Aucune vidéo YouTube suivante dans la file d'attente.")
+                embed = discord.Embed(title="YouTube - Skip", description="Aucune vidéo YouTube suivante dans la file d'attente.", color=discord.Color.orange())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+        else:
+            embed = discord.Embed(title="YouTube - Erreur", description="Aucune vidéo n'est en cours de lecture.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
 
     @commands.command()
     async def stopm(self, ctx):
+        await ctx.message.delete()
         voice_client = ctx.voice_client
         if voice_client.is_playing():
             voice_client.stop()
-            await ctx.send('Lecture terminé')
+            embed = discord.Embed(title="YouTube - Arrêt", description="Lecture terminée.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+        else:
+            embed = discord.Embed(title="YouTube - Erreur", description="Aucune vidéo n'est en cours de lecture.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
 
     @commands.command()
     async def pause(self, ctx):
+        await ctx.message.delete()
         voice_client = ctx.voice_client
         if voice_client.is_playing() and not self.pause_state:
             voice_client.pause()
             self.pause_state = True
-            await ctx.send("La vidéo YouTube est en pause.")
+            embed = discord.Embed(title="YouTube - Pause", description="La vidéo YouTube est en pause.", color=discord.Color.orange())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+        else:
+            embed = discord.Embed(title="YouTube - Erreur", description="Aucune vidéo n'est en cours de lecture ou la vidéo est déjà en pause.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
 
     @commands.command()
     async def resume(self, ctx):
+        await ctx.message.delete()
         voice_client = ctx.voice_client
         if voice_client.is_paused() and self.pause_state:
             voice_client.resume()
             self.pause_state = False
-            await ctx.send("La vidéo YouTube a repris.")
+            embed = discord.Embed(title="YouTube - Reprise", description="La vidéo YouTube a repris.", color=discord.Color.green())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+        else:
+            embed = discord.Embed(title="YouTube - Erreur", description="Aucune vidéo n'est en pause.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
 
     @commands.command()
     async def queue(self, ctx):
+        await ctx.message.delete()
         if not self.queue:
-            await ctx.send("La file d'attente de vidéos YouTube est vide.")
+            embed = discord.Embed(title="YouTube - File d'attente", description="La file d'attente de vidéos YouTube est vide.", color=discord.Color.orange())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
         else:
-            queue_list = "\n".join([f"{index + 1}. {video['title']}" for index, video in enumerate(self.queue)])
-            await ctx.send(f"File d'attente de vidéos YouTube :\n{queue_list}")
+            queue_list = "\n".join([f"**{index + 1}.** {video['title']}" for index, video in enumerate(self.queue)])
+            embed = discord.Embed(title="YouTube - File d'attente", description=f"File d'attente de vidéos YouTube :\n\n{queue_list}", color=discord.Color.blue())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=30)
 
     @commands.command()
     async def clearq(self, ctx):
+        await ctx.message.delete()
         self.queue.clear()
-        await ctx.send("La file d'attente de vidéos YouTube a été effacée.")
+        embed = discord.Embed(title="YouTube - File d'attente", description="La file d'attente de vidéos YouTube a été effacée.", color=discord.Color.green())
+        embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
 
     @commands.command()
     async def search(self, ctx, *query):
+        await ctx.message.delete()
         query = " ".join(query)
-        ydl_options = {'format': 'bestaudio'}
+        
+        if not ctx.author.voice:
+            embed = discord.Embed(title="YouTube - Erreur", description="Vous devez être connecté à un salon vocal pour utiliser cette commande.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+            return
+        
+        # Options pour la recherche initiale (flat = juste les métadonnées de base, pas de téléchargement)
+        search_options = {
+            'quiet': True,
+            'no_warnings': True,
+            'extract_flat': True,  # Mode plat - ne télécharge pas toutes les infos
+            'noplaylist': True
+        }
+        
+        # Options pour l'extraction complète de la vidéo sélectionnée
+        play_options = {
+            'format': 'bestaudio',
+            'quiet': True,
+            'no_warnings': True,
+            'skip_unavailable_fragments': True,
+            'noplaylist': True
+        }
 
         voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
 
@@ -135,72 +229,136 @@ class Youtube(commands.Cog):
             channel = ctx.author.voice.channel
             await channel.connect()
 
-        with YoutubeDL(ydl_options) as ydl:
-            try:
-                # Effectuer la recherche YouTube
+        # Afficher un embed "Recherche en cours..."
+        loading_embed = discord.Embed(title="YouTube - Recherche en cours", description=f"Recherche de **'{query}'** en cours...", color=discord.Color.yellow())
+        loading_embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+        loading_embed.set_footer(text=Help.version1)
+        loading_msg = await ctx.send(embed=loading_embed)
+
+        try:
+            # Recherche initiale en mode flat (rapide, pas de blocage)
+            with YoutubeDL(search_options) as ydl:
                 info = ydl.extract_info(f'ytsearch10:{query}', download=False)
-                videos = info['entries']
+            
+            # Supprimer l'embed "Recherche en cours..."
+            await loading_msg.delete()
+            
+            if not info or 'entries' not in info:
+                embed = discord.Embed(title="YouTube - Recherche", description="Aucun résultat trouvé pour cette recherche.", color=discord.Color.orange())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+                return
+            
+            videos = [v for v in info.get('entries', []) if v is not None]
+            
+            if not videos:
+                embed = discord.Embed(title="YouTube - Recherche", description="Aucune vidéo valide trouvée pour cette recherche.", color=discord.Color.orange())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+                return
 
-                # Afficher les résultats au format numéroté
-                result_list = []
-                for index, video in enumerate(videos):
-                    if 'playlist' in info and index == 0:
-                        # Si le premier résultat est une playlist, afficher le titre de la playlist avec le nombre de vidéos
-                        playlist_title = video['title']
-                        result_list.append(f"``{index + 1}. {playlist_title} (playlist de {len(videos)} vidéos)``")
-                    else:
-                        # Si ce n'est pas une playlist, afficher le titre de la vidéo
-                        result_list.append(f"``{index + 1}. {video['title']} ({video.get('duration', 'durée inconnue')})``")
+            # Afficher les résultats au format numéroté
+            result_list = []
+            valid_videos = []
+            for video in videos:
+                try:
+                    if video and 'title' in video and 'id' in video:
+                        result_list.append(f"**{len(valid_videos) + 1}.** {video['title']}")
+                        valid_videos.append(video)
+                except Exception:
+                    continue
 
-                # Afficher les résultats dans le message
-                result_message = await ctx.send(f"Résultats de la recherche pour '{query}':\n" + "\n".join(result_list))
+            if not valid_videos:
+                embed = discord.Embed(title="YouTube - Recherche", description="Aucune vidéo valide trouvée pour cette recherche.", color=discord.Color.orange())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+                return
 
-                if 'playlist' in info:
-                    playlist_titles = "\n".join([f"``{index + 1}. {video['title']} ({video.get('duration', 'durée inconnue')})``" for index, video in enumerate(videos)])
-                    await ctx.send(f"Sous-résultats de la playlist '{playlist_title}':\n{playlist_titles}")
+            # Afficher les résultats dans l'embed
+            result_text = "\n".join(result_list)
+            embed = discord.Embed(title="YouTube - Résultats de recherche", description=f"Résultats pour **'{query}'** :\n\n{result_text}", color=discord.Color.blue())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=60)
 
-                    def check_playlist(message):
-                        return message.author == ctx.author and message.content.lower() in ['all', '1']
+            embed2 = discord.Embed(title="YouTube - Choix", description="Veuillez choisir le numéro du résultat à jouer.", color=discord.Color.blue())
+            embed2.set_footer(text=Help.version1)
+            await ctx.send(embed=embed2, delete_after=15)
 
-                    await ctx.send("Voulez-vous jouer toute la playlist ou choisir une vidéo spécifique? Répondez avec 'all' ou '1'.")
-                    response_playlist = await self.bot.wait_for('message', check=check_playlist, timeout=30)
+            def check(message):
+                return message.author == ctx.author and message.channel == ctx.channel and message.content.isdigit() and 1 <= int(message.content) <= len(valid_videos)
 
-                    if response_playlist.content.lower() == 'all':
-                        for video in videos:
-                            audio_url = video['url']
-                            self.queue.append({'title': video['title'], 'url': audio_url})
-                        await ctx.send(f'Toute la playlist "{playlist_title}" a été ajoutée à la file d\'attente.')
+            response = await self.bot.wait_for('message', check=check, timeout=30)
+            choice = int(response.content) - 1
 
-                else:
-                    await ctx.send("Veuillez choisir le numéro du résultat à jouer.")
-
-                def check(message):
-                    return message.author == ctx.author and message.content.isdigit() and 1 <= int(message.content) <= len(videos)
-
-                response = await self.bot.wait_for('message', check=check, timeout=30)
-                choice = int(response.content) - 1
-
-                audio_url = videos[choice]['url']
-
-                # Vérifier si le bot n'est pas en train de jouer ou en pause
-                if voice and (voice.is_playing() or voice.is_paused()):
-                    self.queue.append({'title': videos[choice]['title'], 'url': audio_url})
-                    await ctx.send(f'La vidéo YouTube "{videos[choice]["title"]}" a été ajoutée à la file d\'attente.')
-                else:
-                    voice.play(discord.FFmpegPCMAudio(audio_url, **self.ffmpeg_options), after=lambda e: self.check_queue(ctx))
-                    voice.is_playing()
-                    await ctx.send(f'Le bot est en train de jouer : "{videos[choice]["title"]}"')
-
-            except asyncio.TimeoutError:
-                await ctx.send("La recherche a expiré. Veuillez relancer la commande si vous souhaitez rechercher à nouveau.")
-
+            selected_video = valid_videos[choice]
+            
+            # Extraire l'URL audio de la vidéo sélectionnée (maintenant avec toutes les infos)
+            loading_embed = discord.Embed(title="YouTube - Téléchargement", description="Téléchargement des informations de la vidéo...", color=discord.Color.yellow())
+            loading_embed.set_footer(text=Help.version1)
+            loading_msg = await ctx.send(embed=loading_embed)
+            
+            try:
+                video_url = f"https://www.youtube.com/watch?v={selected_video.get('id', '')}"
+                with YoutubeDL(play_options) as ydl:
+                    video_info = ydl.extract_info(video_url, download=False)
+                audio_url = video_info['url']
+                video_title = video_info.get('title', selected_video.get('title', 'Titre inconnu'))
             except Exception as e:
-                await ctx.send(f"Une erreur s'est produite lors de la recherche : {e}")
+                await loading_msg.delete()
+                embed = discord.Embed(title="YouTube - Erreur", description=f"Erreur lors de l'extraction de l'URL audio : {str(e)}", color=discord.Color.red())
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+                return
+
+            await loading_msg.delete()
+
+            # Vérifier si le bot n'est pas en train de jouer ou en pause
+            voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
+            if voice and (voice.is_playing() or voice.is_paused()):
+                self.queue.append({'title': video_title, 'url': audio_url})
+                embed = discord.Embed(title="YouTube - File d'attente", description=f'La vidéo YouTube **"{video_title}"** a été ajoutée à la file d\'attente.', color=discord.Color.blue())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+            else:
+                voice.play(discord.FFmpegPCMAudio(audio_url, **self.ffmpeg_options), after=lambda e: self.check_queue(ctx))
+                voice.is_playing()
+                embed = discord.Embed(title="YouTube - Lecture", description=f'Le bot est en train de jouer : **"{video_title}"**', color=discord.Color.green())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+
+        except asyncio.TimeoutError:
+            try:
+                await loading_msg.delete()
+            except:
+                pass
+            embed = discord.Embed(title="YouTube - Expiration", description="La recherche a expiré. Veuillez relancer la commande si vous souhaitez rechercher à nouveau.", color=discord.Color.orange())
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+
+        except Exception as e:
+            try:
+                await loading_msg.delete()
+            except:
+                pass
+            embed = discord.Embed(title="YouTube - Erreur", description=f"Une erreur s'est produite lors de la recherche : {str(e)}", color=discord.Color.red())
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+            print(f"Erreur search: {e}")  # Pour debug
 
     @commands.command()
     async def loop(self, ctx):
+        await ctx.message.delete()
         self.loop_state = not self.loop_state  # Inverser l'état de la boucle
-        await ctx.send(f"Boucle {'activée' if self.loop_state else 'désactivée'}.")
+        embed = discord.Embed(title="YouTube - Boucle", description=f"Boucle **{'activée' if self.loop_state else 'désactivée'}**.", color=discord.Color.green() if self.loop_state else discord.Color.red())
+        embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
 
 async def setup(bot):
     await bot.add_cog(Youtube(bot))

@@ -16,7 +16,9 @@ class utility(commands.Cog):
     def __init__(self, client):
         self.client = client
         self.reponse_en_cours = False  # Variable de verrouillage initialement à False
-        with open("C:/Users/danie/Mon Drive/Bot Python Discord/tokengpt.txt", "r") as f:
+        # Utiliser les chemins centralisés depuis main.py
+        gpt_token_path = client.paths['gpt_token_file']
+        with open(gpt_token_path, "r") as f:
             GPT_API_KEY = f.read().strip()
         self.openai_client = OpenAI(api_key=GPT_API_KEY)
         self.rate_limit_delay = 1  # Délai en secondes entre chaque requête (1 seconde dans cet exemple)
@@ -33,19 +35,19 @@ class utility(commands.Cog):
         max_length = 200
         text_parts = [text[i:i+max_length] for i in range(0, len(text), max_length)]
 
+        # Utiliser le chemin centralisé depuis main.py
+        ffmpeg_path = self.client.paths['ffmpeg_exe']
+
         # Joue chaque partie du texte
         for part in text_parts:
             vc.play(discord.FFmpegPCMAudio(
-                executable="C:/Users/Danie/Mon Drive/Bot Python Discord/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe",
+                executable=ffmpeg_path,
                 source=f"http://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl={lang}&q={part}",
                 options=f"-af volume={vol}"
             ))
             while vc.is_playing():
                 await asyncio.sleep(1)
 
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print("Utility.py is ready")
 
     @commands.command()
     async def tts(self, ctx, lang="fr", vol="3.0", *, text):
@@ -183,7 +185,8 @@ class utility(commands.Cog):
         embed.add_field(name='Question: ', value=f'{question}')
         embed.add_field(name='Réponse: ', value=f'{response}')
         embed.set_footer(text=Help.version1)
-        with open("./Autres/8ball.png", "rb") as f:
+        # Utiliser le chemin centralisé depuis main.py
+        with open(self.client.paths['8ball_png'], "rb") as f:
             image_data = f.read()
         embed.set_thumbnail(url="attachment://8ball.png")
         await ctx.send(embed=embed, file=discord.File(io.BytesIO(image_data), "8ball.png"))
@@ -207,7 +210,8 @@ class utility(commands.Cog):
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
         embed.add_field(name='Hilaire à dit: ', value=f'{responses}')
         embed.set_footer(text=Help.version1)
-        with open("./Autres/hilaire.png", "rb") as f:
+        # Utiliser le chemin centralisé depuis main.py
+        with open(self.client.paths['hilaire_png'], "rb") as f:
             image_data = f.read()
         embed.set_thumbnail(url="attachment://hilaire.png")
         await ctx.send(embed=embed, file=discord.File(io.BytesIO(image_data), "hilaire.png"))
@@ -236,7 +240,9 @@ class utility(commands.Cog):
                 else:
                     await ctx.send(response_with_mention)
 
-            with open("C:/Users/danie/Mon Drive/Bot Python Discord/gptlogs.txt", "a") as f:
+            # Utiliser le chemin centralisé depuis main.py
+            gpt_logs_path = self.client.paths['gpt_logs']
+            with open(gpt_logs_path, "a") as f:
                 current_time = datetime.datetime.now()
                 f.write(f"Date: {current_time.strftime('%Y-%m-%d')}\n")
                 f.write(f"Heure: {current_time.strftime('%H:%M:%S')}\n")
@@ -319,7 +325,9 @@ class utility(commands.Cog):
                 response_with_mention = f"{ctx.author.mention}\n{response}"  # Ajouter la mention à la réponse
             await ctx.send(response_with_mention)
 
-            with open("C:/Users/danie/Mon Drive/Bot Python Discord/dallelogs.txt", "a") as f:
+            # Utiliser le chemin centralisé depuis main.py
+            dalle_logs_path = self.client.paths['dalle_logs']
+            with open(dalle_logs_path, "a") as f:
                 current_time = datetime.datetime.now()
                 f.write(f"Date: {current_time.strftime('%Y-%m-%d')}\n")
                 f.write(f"Heure: {current_time.strftime('%H:%M:%S')}\n")

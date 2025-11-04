@@ -15,13 +15,15 @@ class Soundboard(commands.Cog):
     def __init__(self, client):
         self.client = client
         self.voice_client = None
-        self.sound_files = os.listdir("./Sounds")
+        # Utiliser le chemin centralisé depuis main.py
+        sounds_dir = client.paths['sounds_dir']
+        self.sound_files = os.listdir(sounds_dir)
         self.sound_files = [f for f in self.sound_files if f.endswith(".mp3")]
-        self.random_task = None    
+        self.random_task = None
+        # Utiliser le chemin centralisé depuis main.py
+        self.ffmpeg_path = client.paths['ffmpeg_exe']
+        self.sounds_dir = sounds_dir    
     
-    @commands.Cog.listener()
-    async def on_ready(self):
-        print("Soundboard.py is ready")
         
     @commands.command()
     async def srandom(self, ctx):
@@ -77,9 +79,9 @@ class Soundboard(commands.Cog):
                         await asyncio.sleep(wait_time)
                         sound_num = random.randint(1, len(self.sound_files))
                         sound_name = self.sound_files[sound_num-1]
-                        file_path = f"./Sounds/{sound_name}"
+                        file_path = f"{self.sounds_dir}/{sound_name}"
                         if os.path.isfile(file_path):
-                            source = discord.FFmpegPCMAudio(file_path, executable='C:/Users/Danie/Mon Drive/Bot Python Discord/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe')
+                            source = discord.FFmpegPCMAudio(file_path, executable=self.ffmpeg_path)
                             self.voice_client.play(source)
                             embed90 = discord.Embed(title= "SoundBoard Random", description=f"Joue {sound_name}", color=discord.Color.green())
                             embed90.set_footer(text=Help.version1)
@@ -137,7 +139,7 @@ class Soundboard(commands.Cog):
     @commands.command()
     async def slist(self, ctx):
         await ctx.message.delete()
-        sound_files = [f for f in os.listdir("./Sounds") if f.endswith(".mp3")]
+        sound_files = [f for f in os.listdir(self.sounds_dir) if f.endswith(".mp3")]
         
         
         if not sound_files:
@@ -149,7 +151,7 @@ class Soundboard(commands.Cog):
 
         file_list = ""
         for i, file in enumerate(sound_files):
-            file_path = f"./Sounds/{file}"
+            file_path = f"{self.sounds_dir}/{file}"
             file_name = os.path.splitext(file)[0]
             if file.endswith(".mp3"):
                 audio = MP3(file_path)
@@ -201,14 +203,14 @@ class Soundboard(commands.Cog):
             return await ctx.send(embed = embed9, delete_after=5)
 
         # Obtenir le nom du fichier audio correspondant au numéro donné
-        sound_files = os.listdir("./Sounds")
-        sound_files = [f for f in os.listdir("./Sounds") if f.endswith(".mp3")]
+        sound_files = os.listdir(self.sounds_dir)
+        sound_files = [f for f in os.listdir(self.sounds_dir) if f.endswith(".mp3")]
         if sound_num is None:
-            file_path2 = f"./Sounds/blepair.mp3"
+            file_path2 = f"{self.sounds_dir}/blepair.mp3"
             embed16 = discord.Embed(title= "SoundBoard Play", description=f"Pour jouer un son, utilisez la commande avec un numéro de son valide. Exemple : `=splay 1`", color=discord.Color.blue())
             embed16.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
             embed16.set_footer(text=Help.version1)
-            source = discord.FFmpegPCMAudio(file_path2, executable='C:/Users/Danie/Mon Drive/Bot Python Discord/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe')
+            source = discord.FFmpegPCMAudio(file_path2, executable=self.ffmpeg_path)
             self.voice_client.play(source)
             return await ctx.send(embed = embed16, delete_after=5)
 
@@ -221,7 +223,7 @@ class Soundboard(commands.Cog):
         sound_name = sound_files[sound_num-1 if sound_num > 0 else 0]
 
         # Vérifiez que le fichier audio existe
-        file_path = f"./Sounds/{sound_name}"  # chemin vers le fichier audio
+        file_path = f"{self.sounds_dir}/{sound_name}"  # chemin vers le fichier audio
         if not os.path.isfile(file_path):
             return await ctx.send(f"Le fichier audio {sound_name} n'existe pas.")
 
@@ -230,7 +232,7 @@ class Soundboard(commands.Cog):
         embed9.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
         embed9.set_footer(text=Help.version1)
         await ctx.send(embed = embed9, delete_after=10)
-        source = discord.FFmpegPCMAudio(file_path, executable='C:/Users/Danie/Mon Drive/Bot Python Discord/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe')
+        source = discord.FFmpegPCMAudio(file_path, executable=self.ffmpeg_path)
         self.voice_client.play(source)
     
         # Exécuter la suite si le fichier "Outro.mp3" a été joué
