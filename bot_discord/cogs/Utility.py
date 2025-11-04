@@ -368,6 +368,8 @@ class utility(commands.Cog):
             await self.process_twitter_message(message)
         elif 'x.com' in message.content:
             await self.process_x_message(message)
+        elif 'reddit.com' in message.content:
+            await self.process_reddit_message(message)
 
     async def process_tiktok_message(self, message):
         tiktok_link = re.search(r'(https?://(?:\S+\.)?tiktok\.com/\S+)', message.content)
@@ -403,6 +405,13 @@ class utility(commands.Cog):
             original_link = x_link.group(0)
             modified_link = original_link.replace('x.com', 'fxtwitter.com')
             await self.send_modified_message(message, modified_link, "X (Twitter)")
+
+    async def process_reddit_message(self, message):
+        reddit_link = re.search(r'(https?://(?:www\.)?reddit\.com/\S+)', message.content)
+        if reddit_link:
+            original_link = reddit_link.group(0)
+            modified_link = original_link.replace('reddit.com', 'vxreddit.com')
+            await self.send_modified_message(message, modified_link, "Reddit")
 
     async def send_modified_message(self, message, modified_link, platform):
         try:

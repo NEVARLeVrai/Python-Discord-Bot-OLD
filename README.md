@@ -48,6 +48,13 @@ Un bot Discord complet avec de nombreuses fonctionnalités, développé en Pytho
 - **`=deldms`** - Supprime tous les DMs du bot (admin perms)
 - **`=tts [langue] [volume] [texte]`** - Fait parler le bot (ex: `=tts fr 3.0 Bonjour`)
 
+### Conversion automatique des liens
+Le bot convertit automatiquement les liens des réseaux sociaux pour un meilleur affichage :
+- **TikTok** → `vxtiktok.com`
+- **Instagram** → `vxinstagram.com`
+- **Twitter/X** → `fxtwitter.com`
+- **Reddit** → `vxreddit.com`
+
 ### Soundboard
 - **`=slist`** - Liste tous les sons disponibles
 - **`=splay [numéro]`** - Joue un son (ex: `=splay 1`)
@@ -205,7 +212,7 @@ Commandes slash disponibles :
 - Les commandes peuvent être utilisées en MP (message privé) selon les permissions
 - Le bot supprime automatiquement les commandes après leur exécution dans les salons textuels
 - Le système de leveling peut être activé/désactivé par les administrateurs
-- Les liens TikTok, Instagram, Twitter/X sont automatiquement convertis en formats compatibles
+- Les liens TikTok, Instagram, Twitter/X et Reddit sont automatiquement convertis en formats compatibles (vxtiktok.com, vxinstagram.com, fxtwitter.com, vxreddit.com)
 
 ## ⚠️ Avertissements
 

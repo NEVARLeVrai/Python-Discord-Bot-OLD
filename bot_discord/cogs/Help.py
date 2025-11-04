@@ -164,6 +164,7 @@ class Help(commands.Cog):
         embed_message5.add_field(name="8ball, magicball", value="Pose une question à la boule magique =8ball [votre question]")
         embed_message5.add_field(name="hilaire", value="Jeu Hilaire =hilaire")
         embed_message5.add_field(name="deldms, delmp", value="Supprime tous les DMs du bot =deldms (admin perms only)")
+        embed_message5.add_field(name="Conversion automatique", value="Le bot convertit automatiquement les liens:\n• TikTok → vxtiktok.com\n• Instagram → vxinstagram.com\n• Twitter/X → fxtwitter.com\n• Reddit → vxreddit.com")
         
         embed_message6 = discord.Embed(
             title="Helps MP",
