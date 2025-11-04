@@ -4,12 +4,15 @@ Un bot Discord complet avec de nombreuses fonctionnalités, développé en Pytho
 
 ## 📋 Table des matières
 
-- [Fonctionnalités](#fonctionnalités)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Commandes](#commandes)
-- [Structure du projet](#structure-du-projet)
-- [Version](#version)
+- [Fonctionnalités](#-fonctionnalités)
+- [Installation](#-installation)
+- [Configuration](#️-configuration)
+- [Structure du projet](#-structure-du-projet)
+- [Version](#-version)
+- [Commandes slash](#-commandes-slash)
+- [Notes](#-notes)
+- [Avertissements](#️-avertissements)
+- [Signalement de bugs](#-signalement-de-bugs)
 
 ## 🚀 Fonctionnalités
 
@@ -216,5 +219,4 @@ Utilisez la commande `=report [message]` pour signaler un bug ou donner un feedb
 
 ---
 
-Développé avec ❤️ en Python
-
+Développé avec ❤️ en Python par [NEVAR](https://github.com/NEVARLeVrai)
