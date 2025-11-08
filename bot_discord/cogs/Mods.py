@@ -32,6 +32,16 @@ class Mods(commands.Cog):
             with open(warns_path, 'w') as f:
                 json.dump(self.warns, f)
         
+        # Chargement des mots bannis
+        banned_words_path = self.client.paths['banned_words_json']
+        if os.path.exists(banned_words_path):
+            with open(banned_words_path, 'r', encoding='utf-8') as f:
+                self.banned_words = json.load(f)
+        else:
+            self.banned_words = []
+            with open(banned_words_path, 'w', encoding='utf-8') as f:
+                json.dump(self.banned_words, f, ensure_ascii=False, indent=2)
+        
         # Démarrer la tâche pour vérifier les timeouts terminés
         self.check_timeout_end.start()
     
@@ -41,6 +51,12 @@ class Mods(commands.Cog):
         warns_path = self.client.paths['warns_json']
         with open(warns_path, 'w') as f:
             json.dump(self.warns, f)
+    
+    def save_banned_words(self):
+        """Sauvegarde les mots bannis dans le fichier JSON"""
+        banned_words_path = self.client.paths['banned_words_json']
+        with open(banned_words_path, 'w', encoding='utf-8') as f:
+            json.dump(self.banned_words, f, ensure_ascii=False, indent=2)
     
     async def remove_protected_role(self, member, guild):
         """Enlève le rôle protégé et retourne True si le rôle était présent"""
@@ -687,6 +703,144 @@ class Mods(commands.Cog):
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
             embed.set_footer(text=Help.version1)
             await ctx.send(embed=embed, delete_after=10)
+
+    @commands.command(aliases=["addbannedword"])
+    @commands.has_permissions(manage_messages=True)
+    async def banword(self, ctx, *, word: str):
+        """Ajoute un mot à la liste des mots bannis"""
+        await ctx.message.delete()
+        
+        # Normaliser le mot (minuscules)
+        word_lower = word.lower().strip()
+        
+        if not word_lower:
+            embed = discord.Embed(title="Erreur", description="Veuillez spécifier un mot à bannir.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+            return
+        
+        if word_lower in self.banned_words:
+            embed = discord.Embed(title="Mot déjà banni", description=f"Le mot `{word}` est déjà dans la liste des mots bannis.", color=discord.Color.orange())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+            return
+        
+        # Ajouter le mot à la liste
+        self.banned_words.append(word_lower)
+        self.save_banned_words()
+        
+        embed = discord.Embed(title="Mot banni", description=f"Le mot `{word}` a été ajouté à la liste des mots bannis.", color=discord.Color.green())
+        embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
+
+    @commands.command(aliases=["removebannedword"])
+    @commands.has_permissions(manage_messages=True)
+    async def unbanword(self, ctx, *, word: str):
+        """Retire un mot de la liste des mots bannis"""
+        await ctx.message.delete()
+        
+        # Normaliser le mot (minuscules)
+        word_lower = word.lower().strip()
+        
+        if not word_lower:
+            embed = discord.Embed(title="Erreur", description="Veuillez spécifier un mot à retirer.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+            return
+        
+        if word_lower not in self.banned_words:
+            embed = discord.Embed(title="Mot non trouvé", description=f"Le mot `{word}` n'est pas dans la liste des mots bannis.", color=discord.Color.orange())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+            return
+        
+        # Retirer le mot de la liste
+        self.banned_words.remove(word_lower)
+        self.save_banned_words()
+        
+        embed = discord.Embed(title="Mot retiré", description=f"Le mot `{word}` a été retiré de la liste des mots bannis.", color=discord.Color.green())
+        embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
+
+    @commands.command(aliases=["bannedwords", "bwlist"])
+    @commands.has_permissions(manage_messages=True)
+    async def listbannedwords(self, ctx):
+        """Affiche la liste des mots bannis"""
+        await ctx.message.delete()
+        
+        if not self.banned_words:
+            embed = discord.Embed(title="Liste des mots bannis", description="Aucun mot banni pour le moment.", color=discord.Color.blue())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=15)
+            return
+        
+        # Diviser la liste en chunks de 20 mots pour éviter les messages trop longs
+        words_list = self.banned_words
+        total_words = len(words_list)
+        
+        # Créer un embed avec la liste
+        embed = discord.Embed(title=f"Liste des mots bannis ({total_words})", description="", color=discord.Color.blue())
+        embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+        embed.set_footer(text=Help.version1)
+        
+        # Afficher les mots (max 1024 caractères par field)
+        words_text = ", ".join([f"`{word}`" for word in words_list[:50]])  # Limite à 50 mots pour éviter les messages trop longs
+        if len(words_list) > 50:
+            words_text += f"\n\n... et {len(words_list) - 50} autre(s) mot(s)"
+        
+        embed.add_field(name="Mots bannis:", value=words_text if words_text else "Aucun", inline=False)
+        await ctx.send(embed=embed, delete_after=30)
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        """Détecte et supprime les messages contenant des mots bannis"""
+        # Ignorer les messages du bot
+        if message.author == self.client.user:
+            return
+        
+        # Ignorer les messages dans les DMs
+        if not isinstance(message.channel, discord.TextChannel):
+            return
+        
+        # Ignorer les commandes (messages qui commencent par le préfixe "=")
+        if message.content and message.content.startswith("="):
+            return
+        
+        # Ignorer les messages vides
+        if not message.content:
+            return
+        
+        # Vérifier si banned_words est défini
+        if not hasattr(self, 'banned_words') or not self.banned_words:
+            return  # Pas de mots bannis, on retourne
+        
+        # Vérifier si le message contient un mot banni
+        message_content_lower = message.content.lower()
+        for banned_word in self.banned_words:
+            if banned_word.lower() in message_content_lower:
+                try:
+                    await message.delete()
+                    # Envoyer un message d'avertissement en MP avec le mot détecté
+                    try:
+                        await message.author.send(f"⚠️ Votre message a été supprimé car il contenait le mot interdit : **`{banned_word}`**")
+                    except:
+                        pass  # Si on ne peut pas envoyer de MP, on continue
+                    break  # Supprimer seulement une fois même si plusieurs mots sont présents
+                except discord.Forbidden:
+                    # Le bot n'a pas les permissions pour supprimer le message
+                    pass
+                except discord.NotFound:
+                    # Le message a déjà été supprimé
+                    pass
+                except Exception:
+                    pass
 
     @cleanraidsimple.error
     async def cleanraidsimple_error(self, ctx, error):

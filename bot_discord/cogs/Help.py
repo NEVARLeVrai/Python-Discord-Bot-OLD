@@ -145,6 +145,9 @@ class Help(commands.Cog):
         embed_message4.add_field(name="removerole", value="Enlève un rôle =removerole [@user] [@role] (owner only)")
         embed_message4.add_field(name="mp", value="Envoie un message privé =mp [@user ou ID] [message]")
         embed_message4.add_field(name="spam", value="Spam des messages =spam [nombre] [#salon ou mention] [message] (admin perms only)")
+        embed_message4.add_field(name="banword, addbannedword", value="Ajoute un mot à la liste des mots bannis =banword [mot] (messages perms only)")
+        embed_message4.add_field(name="unbanword, removebannedword", value="Retire un mot de la liste des mots bannis =unbanword [mot] (messages perms only)")
+        embed_message4.add_field(name="listbannedwords, bannedwords, bwlist", value="Affiche la liste des mots bannis =listbannedwords (messages perms only)")
         
         embed_message5 = discord.Embed(
         title="Helps Utility",
@@ -164,7 +167,7 @@ class Help(commands.Cog):
         embed_message5.add_field(name="8ball, magicball", value="Pose une question à la boule magique =8ball [votre question]")
         embed_message5.add_field(name="hilaire", value="Jeu Hilaire =hilaire")
         embed_message5.add_field(name="deldms, delmp", value="Supprime tous les DMs du bot =deldms (admin perms only)")
-        embed_message5.add_field(name="Conversion automatique", value="Le bot convertit automatiquement les liens:\n• TikTok → vxtiktok.com\n• Instagram → vxinstagram.com\n• Twitter/X → fxtwitter.com\n• Reddit → vxreddit.com")
+        embed_message5.add_field(name="Conversion automatique", value="Le bot convertit automatiquement les liens:\n• TikTok → tiktokez.com (résout les liens courts vm.tiktok.com)\n• Instagram → eeinstagram.com\n• Twitter/X → fxtwitter.com\n• Reddit → vxreddit.com (résout les liens courts redd.it)")
         
         embed_message6 = discord.Embed(
             title="Helps MP",

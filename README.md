@@ -38,6 +38,9 @@ Un bot Discord complet avec de nombreuses fonctionnalités, développé en Pytho
 - **`=removerole [@user] [@role]`** - Enlève un rôle (owner only)
 - **`=mp [@user ou ID] [message]`** - Envoie un message privé
 - **`=spam [nombre] [#salon ou mention] [message]`** - Spam des messages (admin perms)
+- **`=banword [mot]`** ou **`=addbannedword [mot]`** - Ajoute un mot à la liste des mots bannis (messages perms)
+- **`=unbanword [mot]`** ou **`=removebannedword [mot]`** - Retire un mot de la liste des mots bannis (messages perms)
+- **`=listbannedwords`** ou **`=bannedwords`** ou **`=bwlist`** - Affiche la liste des mots bannis (messages perms)
 
 ### Utilitaire (Utility)
 - **`=gpt [question]`** - Utilise GPT pour répondre à une question
@@ -99,6 +102,15 @@ Le bot applique automatiquement des sanctions selon le nombre de warns :
 - **10 warns** : Timeout de 10 minutes
 - **15 warns** : Kick automatique
 - **20 warns** : Ban automatique
+
+### Système de mots bannis
+Le bot peut automatiquement supprimer les messages contenant des mots interdits :
+- Les mots bannis sont stockés dans un fichier JSON (`banned_words.json`)
+- Les messages contenant des mots bannis sont automatiquement supprimés
+- L'utilisateur reçoit un message privé indiquant le mot interdit détecté
+- Tous les utilisateurs sont soumis à ce système (y compris les modérateurs)
+- Les commandes ne sont pas bloquées par ce système
+- Les modifications (ajout/suppression de mots) sont prises en compte en temps réel, comme pour les warns et levels
 
 ## 📦 Installation
 
@@ -173,6 +185,7 @@ PATHS = {
     # Chemins vers les fichiers de données
     'warns_json': "./Autres/warns.json",
     'levels_json': "./Autres/levels.json",
+    'banned_words_json': "./Autres/banned_words.json",
     # Chemins vers les images
     'hilaire2_png': "./Autres/hilaire2.png",
 }
@@ -200,6 +213,7 @@ bot_discord/
 ├── Autres/                # Fichiers de données et ressources
 │   ├── warns.json         # Données des warns
 │   ├── levels.json        # Données des niveaux
+│   ├── banned_words.json  # Liste des mots bannis
 │   └── *.png, *.jpg       # Images du bot
 └── Sounds/                # Fichiers audio pour le soundboard
 ```

@@ -22,6 +22,7 @@ PATHS = {
     'dalle_logs': "C:/Users/danie/Mon Drive/Bot Python Discord/dallelogs.txt",
     'warns_json': "./Autres/warns.json",
     'levels_json': "./Autres/levels.json",
+    'banned_words_json': "./Autres/banned_words.json",
     'hilaire2_png': "./Autres/hilaire2.png",
     'hilaire_png': "./Autres/hilaire.png",
     '8ball_png': "./Autres/8ball.png",
