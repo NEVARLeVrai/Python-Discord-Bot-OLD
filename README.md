@@ -49,11 +49,21 @@ Un bot Discord complet avec de nombreuses fonctionnalités, développé en Pytho
 - **`=tts [langue] [volume] [texte]`** - Fait parler le bot (ex: `=tts fr 3.0 Bonjour`)
 
 ### Conversion automatique des liens
-Le bot convertit automatiquement les liens des réseaux sociaux pour un meilleur affichage :
-- **TikTok** → `vxtiktok.com`
-- **Instagram** → `vxinstagram.com`
+Le bot convertit automatiquement les liens des réseaux sociaux pour un meilleur affichage dans Discord :
+- **TikTok** → `tiktokez.com`
+  - Résout automatiquement les liens courts (`vm.tiktok.com`) vers les liens PC complets
+  - Supprime les paramètres de requête (`?is_from_webapp=1`, etc.)
+  - Supprime le préfixe `www.` pour des liens plus propres
+  - Les liens courts sont automatiquement convertis en liens PC avant la transformation
+- **Instagram** → `eeinstagram.com`
+  - Supprime les paramètres de requête
+  - Ne traite pas les liens `/reels/audio/`
 - **Twitter/X** → `fxtwitter.com`
+  - Convertit les liens `twitter.com` et `x.com` vers `fxtwitter.com`
 - **Reddit** → `vxreddit.com`
+  - Résout automatiquement les liens courts (`redd.it`) vers les liens PC complets
+  - Conserve le préfixe `www.` si présent
+  - Supprime les paramètres de requête
 
 ### Soundboard
 - **`=slist`** - Liste tous les sons disponibles
@@ -97,6 +107,7 @@ Le bot applique automatiquement des sanctions selon le nombre de warns :
 - FFmpeg (pour les fonctionnalités audio)
 - Token Discord Bot
 - Token OpenAI (pour GPT et DALL-E)
+- aiohttp (pour la résolution des liens courts des réseaux sociaux)
 
 ### Étapes d'installation
 
@@ -164,7 +175,6 @@ PATHS = {
     'levels_json': "./Autres/levels.json",
     # Chemins vers les images
     'hilaire2_png': "./Autres/hilaire2.png",
-    # ...
 }
 
 CONFIG = {
@@ -196,11 +206,15 @@ bot_discord/
 
 ## 📝 Version
 
-**Version actuelle :** Bot V.0411-25
+**Version actuelle :** Bot V.0912-25
 
 **Status :** 🟢 Stable
 
-**Update Logs :** `refactoring complet du code, optimisation et amélioration de la structure`
+**Update Logs :** 
+- Refactoring complet du code, optimisation et amélioration de la structure
+- Ajout de la résolution automatique des liens courts (TikTok, Reddit)
+- Conversion améliorée des liens vers des services d'embed optimisés
+- Utilisation d'aiohttp pour des requêtes HTTP asynchrones non-bloquantes
 
 ## 🔧 Commandes slash
 
@@ -214,7 +228,9 @@ Commandes slash disponibles :
 - Les commandes peuvent être utilisées en MP (message privé) selon les permissions
 - Le bot supprime automatiquement les commandes après leur exécution dans les salons textuels
 - Le système de leveling peut être activé/désactivé par les administrateurs
-- Les liens TikTok, Instagram, Twitter/X et Reddit sont automatiquement convertis en formats compatibles (vxtiktok.com, vxinstagram.com, fxtwitter.com, vxreddit.com)
+- Les liens TikTok, Instagram, Twitter/X et Reddit sont automatiquement convertis en formats compatibles pour un meilleur affichage dans Discord
+- Le bot résout automatiquement les liens courts (comme `vm.tiktok.com` ou `redd.it`) vers leurs versions PC complètes avant la conversion
+- Les paramètres de requête sont automatiquement supprimés pour des liens plus propres
 
 ## ⚠️ Avertissements
 

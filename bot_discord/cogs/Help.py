@@ -6,8 +6,8 @@ from cogs import Help
 import traceback
 from datetime import datetime
 
-version1="Bot V.0411-25"
-version2 ="`refactoring complet du code, optimisation et amélioration de la structure`"
+version1="Bot V.0912-25"
+version2 ="`refactoring complet du code, optimisation et amélioration de la structure, ajout de la résolution automatique des liens courts (TikTok, Reddit), conversion améliorée des liens vers des services d'embed optimisés, utilisation d'aiohttp pour des requêtes HTTP asynchrones non-bloquantes`"
 
 
 class Help(commands.Cog):   
