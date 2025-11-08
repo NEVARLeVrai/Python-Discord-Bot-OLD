@@ -16,3 +16,4 @@ matplotlib
 numpy
 pylance
 yarl
+aiohttp

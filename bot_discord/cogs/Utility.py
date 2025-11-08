@@ -11,6 +11,8 @@ import typing
 import asyncio
 import re
 from openai import OpenAI
+import aiohttp
+from urllib.parse import urlparse, urljoin
 
 class utility(commands.Cog):
     def __init__(self, client):
@@ -368,8 +370,30 @@ class utility(commands.Cog):
             await self.process_twitter_message(message)
         elif 'x.com' in message.content:
             await self.process_x_message(message)
-        elif 'reddit.com' in message.content:
+        elif 'reddit.com' in message.content or 'redd.it' in message.content:
             await self.process_reddit_message(message)
+
+    async def get_tiktok_final_url(self, url):
+        """Suit les redirections TikTok pour récupérer le lien PC final"""
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+            timeout = aiohttp.ClientTimeout(total=10)
+            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
+                # Essayer d'abord avec HEAD (plus rapide)
+                try:
+                    async with session.head(url, allow_redirects=True) as response:
+                        final_url = str(response.url)
+                        return final_url
+                except:
+                    # Si HEAD échoue, essayer avec GET
+                    async with session.get(url, allow_redirects=True) as response:
+                        final_url = str(response.url)
+                        return final_url
+        except Exception as e:
+            print(f"Erreur lors de la résolution de l'URL TikTok: {e}")
+            return None
 
     async def process_tiktok_message(self, message):
         tiktok_link = re.search(r'(https?://(?:\S+\.)?tiktok\.com/\S+)', message.content)
@@ -377,10 +401,21 @@ class utility(commands.Cog):
             original_link = tiktok_link.group(0)
             # Supprimer les paramètres de requête (tout ce qui vient après ?)
             original_link = original_link.split('?')[0]
-            # Supprimer le préfixe "vm." si présent
-            modified_link = original_link.replace('vm.tiktok.com', 'tiktok.com')
-            # Remplacer tiktok.com par tnktok.com
-            modified_link = modified_link.replace('tiktok.com', 'tnktok.com')
+            
+            # Si c'est un lien court (vm.tiktok.com), suivre la redirection pour récupérer le lien PC
+            if 'vm.tiktok.com' in original_link:
+                final_url = await self.get_tiktok_final_url(original_link)
+                if final_url:
+                    original_link = final_url
+                    # Supprimer les paramètres de requête du lien final aussi
+                    original_link = original_link.split('?')[0]
+            
+            # Initialiser modified_link
+            modified_link = original_link
+            # Supprimer le préfixe "www." si présent
+            modified_link = modified_link.replace('www.tiktok.com', 'tiktok.com')
+            # Remplacer tiktok.com par tiktokez.com
+            modified_link = modified_link.replace('tiktok.com', 'tiktokez.com')
             await self.send_modified_message(message, modified_link, "TikTok")
 
 
@@ -411,11 +446,50 @@ class utility(commands.Cog):
             modified_link = original_link.replace('x.com', 'fxtwitter.com')
             await self.send_modified_message(message, modified_link, "X (Twitter)")
 
+    async def get_reddit_final_url(self, url):
+        """Suit les redirections Reddit pour récupérer le lien PC final"""
+        try:
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+            timeout = aiohttp.ClientTimeout(total=10)
+            async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
+                # Essayer d'abord avec HEAD (plus rapide)
+                try:
+                    async with session.head(url, allow_redirects=True) as response:
+                        final_url = str(response.url)
+                        return final_url
+                except:
+                    # Si HEAD échoue, essayer avec GET
+                    async with session.get(url, allow_redirects=True) as response:
+                        final_url = str(response.url)
+                        return final_url
+        except Exception as e:
+            print(f"Erreur lors de la résolution de l'URL Reddit: {e}")
+            return None
+
     async def process_reddit_message(self, message):
-        reddit_link = re.search(r'(https?://(?:www\.)?reddit\.com/\S+)', message.content)
+        # Capturer les liens reddit.com et redd.it (liens courts)
+        # Regex améliorée pour mieux capturer les liens Reddit
+        reddit_link = re.search(r'(https?://(?:www\.)?(?:reddit\.com|redd\.it)/[^\s\)\]\>]+)', message.content)
         if reddit_link:
             original_link = reddit_link.group(0)
-            modified_link = original_link.replace('reddit.com', 'vxreddit.com')
+            # Nettoyer le lien (enlever les caractères de fin comme ), ], >, etc.)
+            original_link = original_link.rstrip('.,;!?)>]')
+            # Supprimer les paramètres de requête (tout ce qui vient après ?)
+            original_link = original_link.split('?')[0]
+            
+            # Suivre la redirection pour récupérer le lien PC final (comme pour TikTok)
+            final_url = await self.get_reddit_final_url(original_link)
+            if final_url:
+                original_link = final_url
+                # Supprimer les paramètres de requête du lien final aussi
+                original_link = original_link.split('?')[0]
+            
+            # Initialiser modified_link
+            modified_link = original_link
+            # Remplacer reddit.com par vxreddit.com (garde www. si présent)
+            modified_link = modified_link.replace('reddit.com', 'vxreddit.com')
             await self.send_modified_message(message, modified_link, "Reddit")
 
     async def send_modified_message(self, message, modified_link, platform):
