@@ -375,7 +375,12 @@ class utility(commands.Cog):
         tiktok_link = re.search(r'(https?://(?:\S+\.)?tiktok\.com/\S+)', message.content)
         if tiktok_link:
             original_link = tiktok_link.group(0)
-            modified_link = original_link.replace('tiktok.com', 'vxtiktok.com')
+            # Supprimer les paramètres de requête (tout ce qui vient après ?)
+            original_link = original_link.split('?')[0]
+            # Supprimer le préfixe "vm." si présent
+            modified_link = original_link.replace('vm.tiktok.com', 'tiktok.com')
+            # Remplacer tiktok.com par vxtiktok.com
+            modified_link = modified_link.replace('tiktok.com', 'vxtiktok.com')
             await self.send_modified_message(message, modified_link, "TikTok")
 
 
