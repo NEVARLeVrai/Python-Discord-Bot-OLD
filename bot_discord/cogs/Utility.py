@@ -394,7 +394,7 @@ class utility(commands.Cog):
                 return
             # Supprimer tout ce qui vient après le dernier /
             modified_link = original_link.rsplit('/', 1)[0] + '/'
-            modified_link = modified_link.replace('instagram.com', 'vxinstagram.com')
+            modified_link = modified_link.replace('instagram.com', 'eeinstagram.com')
             await self.send_modified_message(message, modified_link, "Instagram")
 
     async def process_twitter_message(self, message):
