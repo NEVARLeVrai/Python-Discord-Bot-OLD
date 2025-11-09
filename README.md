@@ -241,8 +241,7 @@ bot_discord/
 │   ├── Utility.py         # Commandes utilitaires (GPT, DALL-E, etc.)
 │   ├── Soundboard.py      # Commandes du soundboard
 │   ├── Youtube.py         # Commandes YouTube
-│   ├── Leveling.py        # Système de niveaux
-│   └── Test.py            # Cog de test
+│   └── Leveling.py        # Système de niveaux
 ├── json/                   # Fichiers de données JSON
 │   ├── warns.json         # Données des warns
 │   ├── levels.json        # Données des niveaux
