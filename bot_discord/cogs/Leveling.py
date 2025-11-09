@@ -3,6 +3,7 @@ from discord.ext import commands
 import json
 import asyncio
 from cogs import Help
+from cogs.Help import get_current_version
 import traceback
 
 class Leveling(commands.Cog):
@@ -43,7 +44,7 @@ class Leveling(commands.Cog):
             member = message.author
             embed = discord.Embed(title="Nouveau niveau atteint !", description=f"{member.mention} a atteint le niveau {level + 1} !", color=discord.Color.green())
             embed.set_author(name=f"{message.author.name}", icon_url=message.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.bot))
             await message.channel.send(embed=embed)
 
         # Utiliser le chemin centralisé depuis main.py
@@ -63,7 +64,7 @@ class Leveling(commands.Cog):
         if author_id not in self.levels:
             embed = discord.Embed(title=f"L'utilisateur **{member.display_name}** n'a pas encore de niveau", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after= 10)
             return
 
@@ -77,7 +78,7 @@ class Leveling(commands.Cog):
         embed.add_field(name="Niveau", value=level)
         embed.add_field(name="Expérience", value=f"{experience}/{(level + 1) ** 2}")
         embed.add_field(name="Expérience nécessaire pour le prochain niveau", value=exp_needed)
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(self.bot))
 
         await ctx.send(embed=embed)
 
@@ -90,7 +91,7 @@ class Leveling(commands.Cog):
 
         embed = discord.Embed(title="Tu veux reset les levels ?", description="C'est définitif! Ecris 'oui' ou 'non' pour confirmer", color=discord.Color.red())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(self.bot))
         await ctx.send(embed=embed, delete_after= 5)
 
         try:
@@ -98,7 +99,7 @@ class Leveling(commands.Cog):
         except asyncio.TimeoutError:
             embed = discord.Embed(title="Confirmation a expiré.", description="Commande annulée.", color=discord.Color.orange())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after= 5)
             return
 
@@ -107,7 +108,7 @@ class Leveling(commands.Cog):
             await ctx.channel.purge(limit=msg)
             embed = discord.Embed(title="Réinitialisation", description="Tous les niveaux ont été réinitialisés.", color=discord.Color.yellow())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after= 5)
             self.levels = {}
             self.save_levels()
@@ -115,7 +116,7 @@ class Leveling(commands.Cog):
             await ctx.channel.purge(limit=msg)
             embed = discord.Embed(title="Commande annulé", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after= 5)
 
     @commands.command(aliases=["lvls"])
@@ -127,13 +128,77 @@ class Leveling(commands.Cog):
         if self.is_leveling_enabled:
             embed = discord.Embed(title="Paramètre des levels", description=f"Leveling est maintenant {'activé'}.", color=discord.Color.green())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after= 10)
         else:
             embed = discord.Embed(title="Paramètre des levels", description=f"Leveling est maintenant {'désactivé'}.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after= 10)
+    
+    @commands.command(aliases=["levelleaderboard", "levellb", "lvlboard"])
+    async def levelboard(self, ctx):
+        await ctx.message.delete()
+        
+        # Vérifier si le système a des levels
+        if not self.levels or len(self.levels) == 0:
+            embed = discord.Embed(title="Leaderboard des Levels", description="Aucun niveau enregistré.", color=discord.Color.blue())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=get_current_version(self.bot))
+            await ctx.send(embed=embed)
+            return
+        
+        # Récupérer tous les utilisateurs avec leurs levels et les trier
+        level_list = []
+        for user_id, level_data in self.levels.items():
+            level = level_data.get("level", 0)
+            experience = level_data.get("experience", 0)
+            if level > 0 or experience > 0:
+                try:
+                    member = ctx.guild.get_member(int(user_id))
+                    if member:
+                        level_list.append((member, level, experience))
+                    else:
+                        # Si l'utilisateur n'est plus sur le serveur, on l'affiche quand même
+                        level_list.append((None, level, experience, user_id))
+                except (ValueError, AttributeError):
+                    level_list.append((None, level, experience, user_id))
+        
+        # Trier par niveau décroissant, puis par expérience décroissante
+        level_list.sort(key=lambda x: (x[1], x[2]), reverse=True)
+        
+        # Prendre les top 10
+        top_levels = level_list[:10]
+        
+        # Créer l'embed
+        embed = discord.Embed(title="🏆 Leaderboard des Levels", description="Top 10 des utilisateurs avec le plus haut niveau", color=discord.Color.blue())
+        embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+        embed.set_footer(text=get_current_version(self.bot))
+        
+        # Ajouter les résultats
+        if top_levels:
+            leaderboard_text = ""
+            medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+            
+            for idx, entry in enumerate(top_levels):
+                medal = medals[idx] if idx < len(medals) else f"{idx+1}."
+                
+                if len(entry) == 4:  # Utilisateur qui n'est plus sur le serveur
+                    user_id = entry[3]
+                    level = entry[1]
+                    experience = entry[2]
+                    leaderboard_text += f"{medal} **Utilisateur inconnu** (ID: {user_id}) - Niveau {level} ({experience} XP)\n"
+                else:
+                    member = entry[0]
+                    level = entry[1]
+                    experience = entry[2]
+                    leaderboard_text += f"{medal} {member.mention} - Niveau {level} ({experience} XP)\n"
+            
+            embed.add_field(name="Classement", value=leaderboard_text, inline=False)
+        else:
+            embed.add_field(name="Classement", value="Aucun utilisateur avec des niveaux.", inline=False)
+        
+        await ctx.send(embed=embed)
         
 async def setup(bot):
     await bot.add_cog(Leveling(bot))

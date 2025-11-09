@@ -106,6 +106,7 @@ Le bot convertit automatiquement les liens des réseaux sociaux pour un meilleur
 - **`=level [@user]`** - Voir votre niveau ou celui d'un utilisateur (optionnel)
 - **`=resetlevel`** - Reset tous les niveaux (messages perms)
 - **`=levelsettings`** - Active/désactive le système de leveling (admins perms)
+- **`=levelboard`** - Affiche le leaderboard des levels
 
 ### Système de warns automatique
 Le bot applique automatiquement des sanctions selon le nombre de warns :
@@ -212,6 +213,7 @@ PATHS = {
     'warns_json': "./json/warns.json",
     'levels_json': "./json/levels.json",
     'banned_words_json': "./json/banned_words.json",
+    'update_logs_json': "./json/update_logs.json",
     # Chemins vers les images
     'hilaire2_png': "./img/hilaire2.png",
     'hilaire_png': "./img/hilaire.png",
@@ -242,10 +244,19 @@ bot_discord/
 │   ├── Soundboard.py      # Commandes du soundboard
 │   ├── Youtube.py         # Commandes YouTube
 │   └── Leveling.py        # Système de niveaux
+├── cogs_slash_commands/   # Modules (cogs) des commandes slash
+│   ├── Help_slash.py      # Commandes d'aide et version (slash)
+│   ├── Mods_slash.py      # Commandes de modération (slash)
+│   ├── Utility_slash.py   # Commandes utilitaires (slash)
+│   ├── Soundboard_slash.py # Commandes du soundboard (slash)
+│   ├── Youtube_slash.py   # Commandes YouTube (slash)
+│   ├── Leveling_slash.py  # Système de niveaux (slash)
+│   └── Owner_slash.py     # Commandes owner (slash)
 ├── json/                   # Fichiers de données JSON
 │   ├── warns.json         # Données des warns
 │   ├── levels.json        # Données des niveaux
-│   └── banned_words.json  # Liste des mots bannis
+│   ├── banned_words.json  # Liste des mots bannis
+│   └── update_logs.json   # Historique des versions du bot
 ├── img/                    # Images du bot
 │   ├── 8ball.png
 │   ├── hilaire.png
@@ -259,37 +270,81 @@ bot_discord/
 
 ## 📝 Version
 
-**Version actuelle :** Bot V.0912-25
-
-**Status :** 🟢 Stable
-
-**Update Logs :** 
-- Refactoring complet du code, optimisation et amélioration de la structure
-- Ajout de la résolution automatique des liens courts (TikTok, Reddit)
-- Conversion améliorée des liens vers des services d'embed optimisés
-- Utilisation d'aiohttp pour des requêtes HTTP asynchrones non-bloquantes
-- **Ajout d'un système complet de gestion des erreurs avec messages en français**
-- Messages d'erreur cohérents et informatifs pour toutes les commandes
-- Gestion centralisée des erreurs (permissions, arguments, cooldowns, etc.)
-- **Amélioration des fonctionnalités vocales :**
-  - Suppression de la commande `=sjoin` pour Soundboard
-  - Connexion automatique pour Soundboard (`=splay`, `=srandom`), YouTube (`=play`, `=search`) et TTS (`=tts`)
-  - Gestion intelligente des conflits entre Soundboard, YouTube et TTS
-  - Partage de connexion vocale entre tous les modules
-  - Transitions fluides entre les différentes fonctionnalités vocales
-  - Plus d'erreurs "already connected" - gestion automatique de toutes les situations
-- **Amélioration du Soundboard :**
-  - Support de plusieurs formats audio : MP3, MP4, M4A, OGG, OPUS, WAV, FLAC, AAC
-  - Détection automatique du format audio pour la lecture des métadonnées
-  - Gestion robuste des erreurs lors de la lecture des métadonnées (affichage "N/A" si la durée ne peut pas être déterminée)
-  - Correction des erreurs avec les fichiers audio mal formatés ou avec extension incorrecte
+**Version actuelle :** Voir `/version` ou `=version` pour la version actuelle
 
 ## 🔧 Commandes slash
 
 Le bot supporte les commandes slash Discord. Les commandes slash sont synchronisées automatiquement au démarrage du bot.
 
 ### Commandes slash disponibles
-- `/ping` - Affiche le ping du bot
+
+#### Commandes générales
+- **`/ping`** - Affiche le ping du bot
+- **`/helps`** - Affiche toutes les commandes disponibles (avec pagination)
+- **`/version`** - Affiche la version du bot (option: `history` pour voir l'historique complet)
+- **`/report`** - Signale un bug ou donne un feedback
+
+#### Modération (Mods)
+- **`/clear [nombre]`** - Supprime des messages (max 70, messages perms)
+- **`/warn [@user] [raison] [nombre]`** - Avertit un membre (messages perms)
+- **`/resetwarn [@user]`** - Reset les warns d'un membre (messages perms)
+- **`/warnboard`** - Affiche le leaderboard des warns
+- **`/kick [@user] [raison]`** - Expulse un membre (kick perms)
+- **`/ban [@user ou ID] [raison]`** - Bannit un membre (ban perms)
+- **`/unban [ID]`** - Débannit un membre (ban perms)
+- **`/cleanraidsimple [nom]`** - Supprime un salon par nom (messages perms)
+- **`/cleanraidmultiple [date] [heure]`** - Supprime des salons par date (messages perms)
+- **`/giverole [@user] [@role]`** - Donne un rôle (owner only)
+- **`/removerole [@user] [@role]`** - Enlève un rôle (owner only)
+- **`/mp [@user ou ID] [message]`** - Envoie un message privé
+- **`/spam [nombre] [salon] [message]`** - Spam des messages (admin perms)
+- **`/banword [mot]`** - Ajoute un mot à la liste des mots bannis (messages perms)
+- **`/unbanword [mot]`** - Retire un mot de la liste des mots bannis (messages perms)
+- **`/listbannedwords`** - Affiche la liste des mots bannis (messages perms)
+
+#### Utilitaire (Utility)
+- **`/gpt [question]`** - Utilise GPT pour répondre à une question
+- **`/dalle [prompt]`** - Génère une image avec DALL-E
+- **`/say [salon] [message]`** - Envoie un message dans un salon
+- **`/sayuser [user] [message]`** - Envoie un message à un utilisateur
+- **`/8ball [question]`** - Pose une question à la boule magique
+- **`/hilaire`** - Jeu Hilaire
+- **`/deldms`** - Supprime tous les DMs du bot (admin perms)
+- **`/tts [texte] [langue] [volume]`** - Fait parler le bot (ex: `/tts Bonjour fr 3.0`) - se connecte automatiquement au canal vocal
+
+#### Soundboard
+- **`/slist`** - Liste tous les sons disponibles avec leur durée
+- **`/splay [numéro]`** - Joue un son (ex: `/splay 1`) - se connecte automatiquement au canal vocal
+- **`/sleave`** - Fait quitter le bot du salon vocal
+- **`/sstop`** - Arrête le son en cours
+- **`/srandom`** - Joue des sons aléatoires toutes les 1-5 minutes - se connecte automatiquement au canal vocal
+- **`/srandomskip`** - Skip le son aléatoire en cours
+- **`/srandomstop`** - Arrête la lecture aléatoire
+- **`/vkick [@user]`** - Expulse un utilisateur du vocal (admin perms)
+
+#### YouTube
+- **`/play [URL]`** - Joue une vidéo YouTube - se connecte automatiquement au canal vocal
+- **`/search [recherche]`** - Recherche une vidéo YouTube - se connecte automatiquement au canal vocal
+- **`/skip`** - Skip la vidéo en cours
+- **`/stopm`** - Arrête la lecture
+- **`/pause`** - Met en pause la vidéo
+- **`/resume`** - Reprend la vidéo
+- **`/queue`** - Affiche la file d'attente
+- **`/clearq`** - Vide la file d'attente
+- **`/loop`** - Active/désactive la boucle
+- **`/leave`** - Déconnecte le bot du vocal
+
+#### Leveling
+- **`/level [@user]`** - Voir votre niveau ou celui d'un utilisateur (optionnel)
+- **`/resetlevel`** - Reset tous les niveaux (messages perms)
+- **`/levelsettings`** - Active/désactive le système de leveling (admins perms)
+- **`/levelboard`** - Affiche le leaderboard des levels
+
+#### Owner (propriétaire uniquement)
+- **`/stop`** - Arrête le bot
+- **`/sync`** - Re-synchronise les commandes slash
+- **`/clearslash`** - Efface toutes les commandes slash de Discord
+- **`/slashinfo`** - Affiche des informations de diagnostic sur les commandes slash
 
 ### Synchronisation des commandes slash
 - Les commandes sont synchronisées automatiquement au démarrage

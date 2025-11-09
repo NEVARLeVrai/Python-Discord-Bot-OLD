@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands, tasks
 import asyncio
 from cogs import Help
+from cogs.Help import get_current_version
 import traceback
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
@@ -132,7 +133,7 @@ class Mods(commands.Cog):
             kick_dm = discord.Embed(title="Expulsion", description=f"Vous avez été expulsé(e) du serveur **{ctx.guild.name}**", color=discord.Color.yellow())
             kick_dm.add_field(name="Modérateur:", value=f"{ctx.author.name} ({ctx.author.mention})", inline=False)
             kick_dm.add_field(name="Raison:", value=modreaseon, inline=False)
-            kick_dm.set_footer(text=Help.version1)
+            kick_dm.set_footer(text=get_current_version(self.client))
             await member.send(embed=kick_dm)
         except discord.Forbidden:
             # L'utilisateur a les DMs désactivés, on continue quand même
@@ -144,7 +145,7 @@ class Mods(commands.Cog):
         conf_embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
         conf_embed.add_field(name="Expulsé:", value=f"{member.mention} à été kick par {ctx.author.mention}.", inline=False)
         conf_embed.add_field(name="Raison:", value=modreaseon, inline=False)
-        conf_embed.set_footer(text=Help.version1)
+        conf_embed.set_footer(text=get_current_version(self.client))
         
         await ctx.send(embed=conf_embed)
         
@@ -157,7 +158,15 @@ class Mods(commands.Cog):
         if ctx.author.id == member.id:
             embed = discord.Embed(title="Erreur", description=f"Vous ne pouvez pas vous avertir vous-même.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
+            await ctx.send(embed=embed, delete_after=10)
+            return
+        
+        # Vérifier si on essaie d'avertir un bot
+        if member.bot:
+            embed = discord.Embed(title="Erreur", description=f"Vous ne pouvez pas avertir un bot.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=10)
             return
         
@@ -165,7 +174,7 @@ class Mods(commands.Cog):
         if ctx.author.id == self.blocked_user_id:
             embed = discord.Embed(title="Erreur", description=f"Vous n'avez pas accès à cette commande.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=10)
             return
         
@@ -226,24 +235,28 @@ class Mods(commands.Cog):
         
         conf_embed.add_field(name="Raison:", value=reason, inline=False)
         conf_embed.add_field(name="Nombre total de warns:", value=f"{total_warn_count}", inline=False)
-        conf_embed.set_footer(text=Help.version1)
+        conf_embed.set_footer(text=get_current_version(self.client))
         
         await ctx.send(embed=conf_embed)
         
-        # Envoyer un MP à l'utilisateur averti
-        try:
-            warn_dm = discord.Embed(title="Avertissement", description=f"Vous avez reçu un avertissement sur **{ctx.guild.name}**", color=discord.Color.orange())
-            if warn_count_to_add > 1:
-                warn_dm.add_field(name="Avertissements:", value=f"Vous avez reçu **{warn_count_to_add}** avertissements de {ctx.author.mention}.", inline=False)
-            else:
-                warn_dm.add_field(name="Modérateur:", value=f"{ctx.author.name} ({ctx.author.mention})", inline=False)
-            warn_dm.add_field(name="Raison:", value=reason, inline=False)
-            warn_dm.add_field(name="Nombre total de warns:", value=f"{total_warn_count}", inline=False)
-            warn_dm.set_footer(text=Help.version1)
-            await member.send(embed=warn_dm)
-        except discord.Forbidden:
-            # L'utilisateur a les DMs désactivés, on continue quand même
-            pass
+        # Envoyer un MP à l'utilisateur averti (seulement si ce n'est pas un bot)
+        if not member.bot:
+            try:
+                warn_dm = discord.Embed(title="Avertissement", description=f"Vous avez reçu un avertissement sur **{ctx.guild.name}**", color=discord.Color.orange())
+                if warn_count_to_add > 1:
+                    warn_dm.add_field(name="Avertissements:", value=f"Vous avez reçu **{warn_count_to_add}** avertissements de {ctx.author.mention}.", inline=False)
+                else:
+                    warn_dm.add_field(name="Modérateur:", value=f"{ctx.author.name} ({ctx.author.mention})", inline=False)
+                warn_dm.add_field(name="Raison:", value=reason, inline=False)
+                warn_dm.add_field(name="Nombre total de warns:", value=f"{total_warn_count}", inline=False)
+                warn_dm.set_footer(text=get_current_version(self.client))
+                await member.send(embed=warn_dm)
+            except discord.Forbidden:
+                # L'utilisateur a les DMs désactivés, on continue quand même
+                pass
+            except AttributeError:
+                # Erreur si c'est un bot (ne devrait pas arriver avec la vérification, mais on le gère quand même)
+                pass
         
         # Appliquer les actions automatiques selon le nombre de warns
         previous_warn_count = total_warn_count - warn_count_to_add
@@ -356,7 +369,7 @@ class Mods(commands.Cog):
         if guild_id not in self.warns or member_id not in self.warns[guild_id]:
             embed = discord.Embed(title="Erreur", description=f"{member.mention} n'a aucun warn.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=10)
             return
         
@@ -396,7 +409,7 @@ class Mods(commands.Cog):
             desc_text += f"\nLe rôle protégé a été remis."
         
         conf_embed.add_field(name="Warns réinitialisés:", value=desc_text, inline=False)
-        conf_embed.set_footer(text=Help.version1)
+        conf_embed.set_footer(text=get_current_version(self.client))
         
         await ctx.send(embed=conf_embed)
     
@@ -410,7 +423,7 @@ class Mods(commands.Cog):
         if guild_id not in self.warns or not self.warns[guild_id]:
             embed = discord.Embed(title="Leaderboard des Warns", description="Aucun warn enregistré sur ce serveur.", color=discord.Color.orange())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed)
             return
         
@@ -438,7 +451,7 @@ class Mods(commands.Cog):
         # Créer l'embed
         embed = discord.Embed(title="🏆 Leaderboard des Warns", description="Top 10 des utilisateurs avec le plus de warns", color=discord.Color.orange())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(self.client))
         
         # Ajouter les résultats
         if top_warns:
@@ -480,7 +493,7 @@ class Mods(commands.Cog):
             conf_embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
             conf_embed.add_field(name="Banni:", value=f"<@{user_id}> a été banni par {ctx.author.mention}.", inline=False)
             conf_embed.add_field(name="Raison:", value=modreaseon, inline=False)
-            conf_embed.set_footer(text=Help.version1)
+            conf_embed.set_footer(text=get_current_version(self.client))
             
             await ctx.send(embed=conf_embed)
         else:
@@ -492,7 +505,7 @@ class Mods(commands.Cog):
                 ban_dm = discord.Embed(title="Bannissement", description=f"Vous avez été banni(e) du serveur **{ctx.guild.name}**", color=discord.Color.red())
                 ban_dm.add_field(name="Modérateur:", value=f"{ctx.author.name} ({ctx.author.mention})", inline=False)
                 ban_dm.add_field(name="Raison:", value=modreaseon, inline=False)
-                ban_dm.set_footer(text=Help.version1)
+                ban_dm.set_footer(text=get_current_version(self.client))
                 await member.send(embed=ban_dm)
             except discord.Forbidden:
                 # L'utilisateur a les DMs désactivés, on continue quand même
@@ -504,7 +517,7 @@ class Mods(commands.Cog):
             conf_embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
             conf_embed.add_field(name="Banni:", value=f"{member.mention} a été banni par {ctx.author.mention}.", inline=False)
             conf_embed.add_field(name="Raison:", value=modreaseon, inline=False)
-            conf_embed.set_footer(text=Help.version1)
+            conf_embed.set_footer(text=get_current_version(self.client))
             
             await ctx.send(embed=conf_embed)
         
@@ -519,7 +532,7 @@ class Mods(commands.Cog):
         conf_embed = discord.Embed(title= "Réussi!", description="", color=discord.Color.green())
         conf_embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
         conf_embed.add_field(name="Débanni:", value=f"<@{userId}> à été débanni du serveur par {ctx.author.mention}.", inline=False)
-        conf_embed.set_footer(text=Help.version1)
+        conf_embed.set_footer(text=get_current_version(self.client))
     
         
         await ctx.send(embed=conf_embed)
@@ -540,7 +553,7 @@ class Mods(commands.Cog):
             else:
                 embed1 = discord.Embed(title="Spam Non Envoyé!", description="Format de mention de salon incorrect.", color=discord.Color.red())
                 embed1.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed1.set_footer(text=Help.version1)
+                embed1.set_footer(text=get_current_version(self.client))
 
                 await ctx.send(embed=embed1, delete_after=10)
                 return
@@ -558,7 +571,7 @@ class Mods(commands.Cog):
 
         embed = discord.Embed(title="Spam Envoyé!", description=f"Spam envoyé de {amount} message(s) dans {destination.mention}" if isinstance(destination, discord.TextChannel) else f"Message envoyé à {destination.name}#{destination.discriminator}", color=discord.Color.green())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(self.client))
         
         await ctx.send(embed=embed, delete_after=10)
 
@@ -589,18 +602,18 @@ class Mods(commands.Cog):
         if found:
             embed4 = discord.Embed(title="Nettoyage Raid par nom", description=f"Suppression des ou d'un Salon(s) **{channel}**", color=discord.Color.yellow())
             embed4.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed4.set_footer(text=Help.version1)
+            embed4.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed4, delete_after=5)           
             await channeldel.delete()
             embed3 = discord.Embed(title="Nettoyage Raid par nom", description=f"Salon(s) **{channel}** supprimé avec succès!", color=discord.Color.green())
             embed3.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed3.set_footer(text=Help.version1)
+            embed3.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed3, delete_after=5)
             
         else:
             embed5 = discord.Embed(title="Nettoyage Raid par nom", description=f"Aucun Salon(s) avec le nom **{name}** trouvé.", color=discord.Color.red())
             embed5.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed5.set_footer(text=Help.version1)
+            embed5.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed5, delete_after=5)
 
     @commands.command(aliases=["clrs"])
@@ -615,7 +628,7 @@ class Mods(commands.Cog):
                 await channel.delete()
         embed6 = discord.Embed(title="Nettoyage Raid par temps", description=f"Salon(s) entre **{raid_datetime}** ont été supprimés", color=discord.Color.green())
         embed6.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed6.set_footer(text=Help.version1)
+        embed6.set_footer(text=get_current_version(self.client))
         await ctx.send(embed=embed6, delete_after=5)
 
     @commands.command(name='giverole')
@@ -627,14 +640,14 @@ class Mods(commands.Cog):
             conf_embed = discord.Embed(title= "Réussi!", description="", color=discord.Color.random())
             conf_embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
             conf_embed.add_field(name=f"Le rôle **@{role.name}**", value=f"a été attribué à {utilisateur.mention}", inline=False)
-            conf_embed.set_footer(text=Help.version1)
+            conf_embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=conf_embed, delete_after=10)
             
         except discord.Forbidden:
             conf_embed1 = discord.Embed(title= "Erreur !", description="", color=discord.Color.red())
             conf_embed1.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
             conf_embed1.add_field(name="Je n'ai pas les permissions nécessaires pour attribuer ce rôle", value=" ", inline=False)
-            conf_embed1.set_footer(text=Help.version1)
+            conf_embed1.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=conf_embed1, delete_after=10)
             
         except discord.HTTPException as e:
@@ -649,14 +662,14 @@ class Mods(commands.Cog):
             conf_embed = discord.Embed(title= "Réussi!", description="", color=discord.Color.random())
             conf_embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
             conf_embed.add_field(name=f"Le rôle **@{role.name}**", value=f" a été enlevé à {utilisateur.mention}", inline=False)
-            conf_embed.set_footer(text=Help.version1)
+            conf_embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=conf_embed, delete_after=10)
     
         except discord.Forbidden:
             conf_embed1 = discord.Embed(title= "Erreur !", description="", color=discord.Color.red())
             conf_embed1.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
             conf_embed1.add_field(name="Je n'ai pas les permissions nécessaires pour enlever ce rôle", value=" ", inline=False)
-            conf_embed1.set_footer(text=Help.version1)
+            conf_embed1.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=conf_embed1, delete_after=10)
 
         except discord.HTTPException as e:
@@ -673,7 +686,7 @@ class Mods(commands.Cog):
             except discord.NotFound:
                 embed = discord.Embed(title="Erreur", description="Utilisateur introuvable.", color=discord.Color.red())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=Help.version1)
+                embed.set_footer(text=get_current_version(self.client))
                 await ctx.send(embed=embed, delete_after=10)
                 return
         else:
@@ -690,18 +703,18 @@ class Mods(commands.Cog):
             embed = discord.Embed(title="Message envoyé", description=f"Message envoyé en MP à {target_user.mention}", color=discord.Color.green())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
             embed.add_field(name="Message:", value=message[:500] + ("..." if len(message) > 500 else ""), inline=False)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=10)
             
         except discord.Forbidden:
             embed = discord.Embed(title="Erreur", description=f"Impossible d'envoyer un message à {target_user.mention}. Les messages privés sont peut-être désactivés.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=10)
         except Exception as e:
             embed = discord.Embed(title="Erreur", description=f"Une erreur s'est produite: {str(e)}", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=10)
 
     @commands.command(aliases=["addbannedword"])
@@ -716,14 +729,14 @@ class Mods(commands.Cog):
         if not word_lower:
             embed = discord.Embed(title="Erreur", description="Veuillez spécifier un mot à bannir.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=10)
             return
         
         if word_lower in self.banned_words:
             embed = discord.Embed(title="Mot déjà banni", description=f"Le mot `{word}` est déjà dans la liste des mots bannis.", color=discord.Color.orange())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=10)
             return
         
@@ -733,7 +746,7 @@ class Mods(commands.Cog):
         
         embed = discord.Embed(title="Mot banni", description=f"Le mot `{word}` a été ajouté à la liste des mots bannis.", color=discord.Color.green())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(self.client))
         await ctx.send(embed=embed, delete_after=10)
 
     @commands.command(aliases=["removebannedword"])
@@ -748,14 +761,14 @@ class Mods(commands.Cog):
         if not word_lower:
             embed = discord.Embed(title="Erreur", description="Veuillez spécifier un mot à retirer.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=10)
             return
         
         if word_lower not in self.banned_words:
             embed = discord.Embed(title="Mot non trouvé", description=f"Le mot `{word}` n'est pas dans la liste des mots bannis.", color=discord.Color.orange())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=10)
             return
         
@@ -765,7 +778,7 @@ class Mods(commands.Cog):
         
         embed = discord.Embed(title="Mot retiré", description=f"Le mot `{word}` a été retiré de la liste des mots bannis.", color=discord.Color.green())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(self.client))
         await ctx.send(embed=embed, delete_after=10)
 
     @commands.command(aliases=["bannedwords", "bwlist"])
@@ -777,7 +790,7 @@ class Mods(commands.Cog):
         if not self.banned_words:
             embed = discord.Embed(title="Liste des mots bannis", description="Aucun mot banni pour le moment.", color=discord.Color.blue())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=15)
             return
         
@@ -788,7 +801,7 @@ class Mods(commands.Cog):
         # Créer un embed avec la liste
         embed = discord.Embed(title=f"Liste des mots bannis ({total_words})", description="", color=discord.Color.blue())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(self.client))
         
         # Afficher les mots (max 1024 caractères par field)
         words_text = ", ".join([f"`{word}`" for word in words_list[:50]])  # Limite à 50 mots pour éviter les messages trop longs

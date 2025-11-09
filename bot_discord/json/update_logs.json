@@ -1,0 +1,16 @@
+{
+  "current_version": "Bot V.0911-25",
+  "history": [
+    {
+      "version": "Bot V.0911-25",
+      "date": "09/11/2025",
+      "logs": "correction d'erreurs, optimisation du code, ajout de la résolution automatique des liens courts (TikTok, Reddit), conversion améliorée des liens vers des services d'embed optimisés, utilisation d'aiohttp pour des requêtes HTTP asynchrones non-bloquantes"
+    },
+    {
+      "version": "Bot V.0910-25",
+      "date": "09/10/2025",
+      "logs": "Refactoring complet du code, optimisation et amélioration de la structure, ajout de la résolution automatique des liens courts (TikTok, Reddit), conversion améliorée des liens vers des services d'embed optimisés, utilisation d'aiohttp pour des requêtes HTTP asynchrones non-bloquantes, ajout du système de pagination pour /helps, ajout de la commande /levelboard, amélioration du système de synchronisation des données (warns, levels, banned_words), migration complète vers les commandes slash"
+    }
+  ]
+}
+

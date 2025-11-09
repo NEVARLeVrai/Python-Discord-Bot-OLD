@@ -6,6 +6,7 @@ import os
 import asyncio
 import time
 from cogs import Help
+from cogs.Help import get_current_version
 import io
 import traceback
 import aiohttp
@@ -33,7 +34,8 @@ PATHS = {
     'version_jpg': "./img/version.jpg",
     'sounds_dir': "./Sounds",
     'cogs_dir': "./cogs",
-    'cogs_slash_dir': "./cogs_slash_commands"
+    'cogs_slash_dir': "./cogs_slash_commands",
+    'update_logs_json': "./json/update_logs.json"
 }
 
 # Configuration centralisée
@@ -85,7 +87,8 @@ async def load():
     # Charger les cogs avec commandes prefix (=)
     cogs_dir = PATHS['cogs_dir']
     for filename in os.listdir(cogs_dir):
-        if filename.endswith(".py"):
+        # Ignorer __init__.py
+        if filename.endswith(".py") and filename != "__init__.py":
             try:
                 await client.load_extension(f"cogs.{filename[:-3]}")
                 print(f"Chargé: cogs.{filename[:-3]}")
@@ -96,7 +99,8 @@ async def load():
     cogs_slash_dir = PATHS['cogs_slash_dir']
     if os.path.exists(cogs_slash_dir):
         for filename in os.listdir(cogs_slash_dir):
-            if filename.endswith(".py"):
+            # Ignorer __init__.py
+            if filename.endswith(".py") and filename != "__init__.py":
                 try:
                     await client.load_extension(f"cogs_slash_commands.{filename[:-3]}")
                     print(f"Chargé: cogs_slash_commands.{filename[:-3]}")
@@ -124,7 +128,7 @@ async def on_command_error(ctx, error):
         embed = discord.Embed(title="Commande inconnue", description="Utilisez **=helps** pour la liste des commandes", color=discord.Color.red())
         if ctx.guild:
             embed.set_image(url=ctx.guild.icon)
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         await ctx.send(embed=embed, delete_after=10)
         return
     
@@ -137,7 +141,7 @@ async def on_command_error(ctx, error):
             description=f"Vous n'avez pas les permissions nécessaires pour utiliser cette commande.\n\n**Permissions requises:** {perms_text}",
             color=discord.Color.red()
         )
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         await ctx.send(embed=embed, delete_after=10)
         return
     
@@ -150,7 +154,7 @@ async def on_command_error(ctx, error):
             description=f"Le bot n'a pas les permissions nécessaires pour exécuter cette commande.\n\n**Permissions requises:** {perms_text}",
             color=discord.Color.red()
         )
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         await ctx.send(embed=embed, delete_after=10)
         return
     
@@ -161,7 +165,7 @@ async def on_command_error(ctx, error):
             description=f"La commande `{ctx.command.name}` nécessite l'argument `{error.param.name}`.\n\nUtilisez **=helps** pour voir la syntaxe correcte.",
             color=discord.Color.red()
         )
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         await ctx.send(embed=embed, delete_after=10)
         return
     
@@ -172,7 +176,7 @@ async def on_command_error(ctx, error):
             description=f"L'argument fourni est invalide.\n\nUtilisez **=helps** pour voir la syntaxe correcte de la commande `{ctx.command.name}`.",
             color=discord.Color.red()
         )
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         await ctx.send(embed=embed, delete_after=10)
         return
     
@@ -183,7 +187,7 @@ async def on_command_error(ctx, error):
             description=f"Vous devez attendre **{error.retry_after:.1f}** secondes avant de réutiliser cette commande.",
             color=discord.Color.orange()
         )
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         await ctx.send(embed=embed, delete_after=error.retry_after)
         return
     
@@ -194,7 +198,7 @@ async def on_command_error(ctx, error):
             description="Cette commande est réservée au propriétaire du bot.",
             color=discord.Color.red()
         )
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         await ctx.send(embed=embed, delete_after=10)
         return
     
@@ -205,7 +209,7 @@ async def on_command_error(ctx, error):
             description="Cette commande ne peut pas être utilisée en message privé.",
             color=discord.Color.red()
         )
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         await ctx.send(embed=embed, delete_after=10)
         return
     
@@ -216,7 +220,7 @@ async def on_command_error(ctx, error):
             description="Vous ne remplissez pas les conditions requises pour utiliser cette commande.",
             color=discord.Color.red()
         )
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         await ctx.send(embed=embed, delete_after=10)
         return
     
@@ -230,7 +234,7 @@ async def on_command_error(ctx, error):
                 description="Le bot n'a pas les permissions nécessaires pour effectuer cette action.",
                 color=discord.Color.red()
             )
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(client))
             try:
                 await ctx.send(embed=embed, delete_after=10)
             except:
@@ -242,7 +246,7 @@ async def on_command_error(ctx, error):
                 description="La ressource demandée n'a pas été trouvée.",
                 color=discord.Color.red()
             )
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(client))
             try:
                 await ctx.send(embed=embed, delete_after=10)
             except:
@@ -255,7 +259,7 @@ async def on_command_error(ctx, error):
                 description="Une erreur s'est produite lors de l'exécution de la commande.",
                 color=discord.Color.red()
             )
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(client))
             try:
                 await ctx.send(embed=embed, delete_after=10)
             except:
@@ -274,19 +278,38 @@ async def on_command_error(ctx, error):
 # Gestionnaire d'erreurs pour les commandes slash
 @client.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
-    # Fonction helper pour répondre à l'interaction
-    async def send_error_embed(embed):
+    """Gestionnaire d'erreurs global pour les commandes slash"""
+    # Fonction helper pour répondre à l'interaction avec fallback
+    async def send_error_embed(embed, use_channel_fallback=True):
         try:
             if interaction.response.is_done():
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=True, wait=False)
             else:
                 await interaction.response.send_message(embed=embed, ephemeral=True)
-        except:
-            # Si ça échoue, essayer avec followup
-            try:
-                await interaction.followup.send(embed=embed, ephemeral=True)
-            except:
-                pass
+        except (discord.NotFound, discord.HTTPException) as e:
+            # Webhook expiré ou erreur HTTP - essayer avec followup si pas déjà fait
+            if not interaction.response.is_done():
+                try:
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                    return
+                except:
+                    pass
+            
+            # Si le fallback est activé et que le channel est disponible, envoyer un message normal
+            if use_channel_fallback and interaction.channel:
+                try:
+                    await interaction.channel.send(embed=embed, delete_after=10)
+                except:
+                    pass
+        except Exception as e:
+            # Dernière tentative avec le channel si disponible
+            if use_channel_fallback and interaction.channel:
+                try:
+                    await interaction.channel.send(embed=embed, delete_after=10)
+                except:
+                    pass
+    
+    command_name = interaction.command.name if interaction.command else 'inconnue'
     
     # Permissions manquantes pour l'utilisateur
     if isinstance(error, app_commands.MissingPermissions):
@@ -297,7 +320,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
             description=f"Vous n'avez pas les permissions nécessaires pour utiliser cette commande.\n\n**Permissions requises:** {perms_text}",
             color=discord.Color.red()
         )
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         await send_error_embed(embed)
         return
     
@@ -310,7 +333,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
             description=f"Le bot n'a pas les permissions nécessaires pour exécuter cette commande.\n\n**Permissions requises:** {perms_text}",
             color=discord.Color.red()
         )
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         await send_error_embed(embed)
         return
     
@@ -321,20 +344,12 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
             description=f"Vous devez attendre **{error.retry_after:.1f}** secondes avant de réutiliser cette commande.",
             color=discord.Color.orange()
         )
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         await send_error_embed(embed)
         return
     
-    # Commande réservée au propriétaire
-    if isinstance(error, app_commands.NotOwner):
-        embed = discord.Embed(
-            title="Accès refusé",
-            description="Cette commande est réservée au propriétaire du bot.",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text=Help.version1)
-        await send_error_embed(embed)
-        return
+    # Commande réservée au propriétaire (pas de NotOwner dans app_commands, géré par les checks)
+    # Les commandes owner-only utilisent des checks personnalisés qui lèvent CheckFailure
     
     # Erreur de check
     if isinstance(error, app_commands.CheckFailure):
@@ -343,13 +358,14 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
             description="Vous ne remplissez pas les conditions requises pour utiliser cette commande.",
             color=discord.Color.red()
         )
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         await send_error_embed(embed)
         return
     
     # Erreur d'invocation
     if isinstance(error, app_commands.CommandInvokeError):
         original_error = error.original
+        
         # Gérer les erreurs Discord spécifiques
         if isinstance(original_error, discord.Forbidden):
             embed = discord.Embed(
@@ -357,17 +373,88 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
                 description="Le bot n'a pas les permissions nécessaires pour effectuer cette action.",
                 color=discord.Color.red()
             )
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(client))
             await send_error_embed(embed)
             return
         elif isinstance(original_error, discord.NotFound):
+            # Erreur 404 - peut être due à un webhook expiré ou une ressource supprimée
+            # Si c'est un webhook expiré (error code 10008), la commande devrait l'avoir géré
+            error_code = getattr(original_error, 'code', None)
+            if error_code == 10008:
+                # Webhook expiré - ne pas afficher d'erreur car la commande a probablement réussi
+                # Les commandes individuelles gèrent ce cas avec un fallback sur channel.send
+                print(f"Webhook expiré pour la commande {command_name} (code 10008) - géré par la commande")
+                return
+            else:
+                embed = discord.Embed(
+                    title="Ressource introuvable",
+                    description="La ressource demandée n'a pas été trouvée.",
+                    color=discord.Color.red()
+                )
+                embed.set_footer(text=get_current_version(client))
+                await send_error_embed(embed, use_channel_fallback=True)
+                return
+        elif isinstance(original_error, discord.HTTPException):
             embed = discord.Embed(
-                title="Ressource introuvable",
-                description="La ressource demandée n'a pas été trouvée.",
+                title="Erreur HTTP",
+                description=f"Une erreur HTTP s'est produite: {str(original_error)}",
                 color=discord.Color.red()
             )
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(client))
             await send_error_embed(embed)
+            print(f"\nErreur HTTP dans la commande slash {command_name}:")
+            traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
+            return
+        elif isinstance(original_error, ValueError):
+            embed = discord.Embed(
+                title="Valeur invalide",
+                description=f"La valeur fournie est invalide: {str(original_error)}",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text=get_current_version(client))
+            await send_error_embed(embed)
+            return
+        elif isinstance(original_error, TypeError):
+            embed = discord.Embed(
+                title="Type invalide",
+                description=f"Le type fourni est invalide: {str(original_error)}",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text=get_current_version(client))
+            await send_error_embed(embed)
+            return
+        elif isinstance(original_error, AttributeError):
+            embed = discord.Embed(
+                title="Erreur d'attribut",
+                description="Une erreur s'est produite lors de l'accès à un attribut.",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text=get_current_version(client))
+            await send_error_embed(embed)
+            print(f"\nErreur d'attribut dans la commande slash {command_name}:")
+            traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
+            return
+        elif isinstance(original_error, KeyError):
+            embed = discord.Embed(
+                title="Clé introuvable",
+                description="Une clé nécessaire n'a pas été trouvée.",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text=get_current_version(client))
+            await send_error_embed(embed)
+            print(f"\nErreur de clé dans la commande slash {command_name}:")
+            traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
+            return
+        elif isinstance(original_error, FileNotFoundError):
+            embed = discord.Embed(
+                title="Fichier introuvable",
+                description="Un fichier nécessaire n'a pas été trouvé.",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text=get_current_version(client))
+            await send_error_embed(embed)
+            print(f"\nFichier introuvable dans la commande slash {command_name}:")
+            traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
             return
         else:
             # Autres erreurs
@@ -376,10 +463,9 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
                 description="Une erreur s'est produite lors de l'exécution de la commande.",
                 color=discord.Color.red()
             )
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(client))
             await send_error_embed(embed)
             # Logger l'erreur pour le débogage
-            command_name = interaction.command.name if interaction.command else 'inconnue'
             print(f"\nErreur dans la commande slash {command_name}:")
             traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
             return
@@ -390,9 +476,8 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
         description="Une erreur inattendue s'est produite.",
         color=discord.Color.red()
     )
-    embed.set_footer(text=Help.version1)
+    embed.set_footer(text=get_current_version(client))
     await send_error_embed(embed)
-    command_name = interaction.command.name if interaction.command else 'inconnue'
     print(f"\nErreur non gérée dans la commande slash {command_name}:")
     traceback.print_exception(type(error), error, error.__traceback__)      
 
@@ -411,7 +496,7 @@ async def sync_commands(ctx):
             description="Synchronisation des commandes slash...",
             color=discord.Color.orange()
         )
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         status_msg = await ctx.send(embed=embed)
         
         # Synchroniser sur le serveur actuel
@@ -433,7 +518,7 @@ async def sync_commands(ctx):
                 inline=False
             )
         
-        success_embed.set_footer(text=Help.version1)
+        success_embed.set_footer(text=get_current_version(client))
         await status_msg.edit(embed=success_embed)
         
         # Supprimer le message après 10 secondes
@@ -449,7 +534,7 @@ async def sync_commands(ctx):
             description=f"Erreur: {str(e)}",
             color=discord.Color.red()
         )
-        error_embed.set_footer(text=Help.version1)
+        error_embed.set_footer(text=get_current_version(client))
         try:
             await status_msg.edit(embed=error_embed)
             await asyncio.sleep(10)
@@ -503,7 +588,7 @@ async def slash_info(ctx):
         inline=False
     )
     
-    embed.set_footer(text=Help.version1)
+    embed.set_footer(text=get_current_version(client))
     await ctx.send(embed=embed, delete_after=30)
 
 # Commande pour effacer toutes les commandes slash
@@ -522,7 +607,7 @@ async def clear_slash_commands(ctx):
             description="Suppression en cours...",
             color=discord.Color.orange()
         )
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(client))
         status_msg = await ctx.send(embed=embed)
         
         # Obtenir l'application ID pour compter les commandes avant suppression
@@ -598,7 +683,7 @@ async def clear_slash_commands(ctx):
             inline=False
         )
         
-        success_embed.set_footer(text=Help.version1)
+        success_embed.set_footer(text=get_current_version(client))
         await status_msg.edit(embed=success_embed)
         
         # Supprimer le message après 10 secondes
@@ -614,7 +699,7 @@ async def clear_slash_commands(ctx):
             description=f"Erreur: {str(e)}",
             color=discord.Color.red()
         )
-        error_embed.set_footer(text=Help.version1)
+        error_embed.set_footer(text=get_current_version(client))
         try:
             if status_msg:
                 await status_msg.edit(embed=error_embed)
@@ -635,7 +720,7 @@ async def stop(ctx):
     await ctx.message.delete()
     bot_latency = round(client.latency * 1000)
     embed = discord.Embed(title= "Arrêt", description=f"Le Bot s'arrête Ping {bot_latency} ms.", color=discord.Color.red())
-    embed.set_footer(text=Help.version1)
+    embed.set_footer(text=get_current_version(client))
     with open(PATHS['hilaire2_png'], "rb") as f:
         image_data = f.read()
     embed.set_thumbnail(url="attachment://hilaire2.png")

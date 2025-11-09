@@ -4,6 +4,7 @@ import random
 import io
 import asyncio
 from cogs import Help
+from cogs.Help import get_current_version
 import traceback
 import openai
 import datetime
@@ -59,7 +60,7 @@ class utility(commands.Cog):
             if not ctx.author.voice:
                 embed = discord.Embed(title="TTS - Erreur", description="Vous devez être dans un salon vocal pour utiliser cette commande.", color=discord.Color.red())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=Help.version1)
+                embed.set_footer(text=get_current_version(self.client))
                 await ctx.send(embed=embed, delete_after=5)
                 return
 
@@ -88,13 +89,13 @@ class utility(commands.Cog):
                     except discord.errors.ClientException as e:
                         embed = discord.Embed(title="TTS - Erreur", description=f"Conflit de connexion vocale. Le bot est peut-être utilisé par une autre fonctionnalité.", color=discord.Color.red())
                         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                        embed.set_footer(text=Help.version1)
+                        embed.set_footer(text=get_current_version(self.client))
                         await ctx.send(embed=embed, delete_after=5)
                         return
                     except Exception as e:
                         embed = discord.Embed(title="TTS - Erreur", description=f"Impossible de se déplacer vers le canal vocal: {str(e)}", color=discord.Color.red())
                         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                        embed.set_footer(text=Help.version1)
+                        embed.set_footer(text=get_current_version(self.client))
                         await ctx.send(embed=embed, delete_after=5)
                         return
             else:
@@ -104,19 +105,19 @@ class utility(commands.Cog):
                 except discord.errors.ClientException as e:
                     embed = discord.Embed(title="TTS - Erreur", description=f"Conflit de connexion vocale. Le bot est peut-être utilisé par une autre fonctionnalité.", color=discord.Color.red())
                     embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                    embed.set_footer(text=Help.version1)
+                    embed.set_footer(text=get_current_version(self.client))
                     await ctx.send(embed=embed, delete_after=5)
                     return
                 except Exception as e:
                     embed = discord.Embed(title="TTS - Erreur", description=f"Impossible de se connecter au canal vocal: {str(e)}", color=discord.Color.red())
                     embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                    embed.set_footer(text=Help.version1)
+                    embed.set_footer(text=get_current_version(self.client))
                     await ctx.send(embed=embed, delete_after=5)
                     return
 
             embed = discord.Embed(title="TTS Play", description=f"Volume: **{vol}**\nLangue: **{lang}**\nDit: **{text}**", color=discord.Color.green())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=25)
             await self.send_tts(vc, lang, vol, text)
 
@@ -124,7 +125,7 @@ class utility(commands.Cog):
             traceback_str = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
             embed = discord.Embed(title="TTS - Erreur", description=f"Une erreur s'est produite lors de la lecture TTS:\n\n```\n{str(e)}\n```", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=10)
             print(f"Erreur TTS: {traceback_str}")
         finally:
@@ -148,7 +149,7 @@ class utility(commands.Cog):
             else:
                 embed1 = discord.Embed(title="Message Non Envoyé!", description="Format de mention de salon incorrect.", color=discord.Color.red())
                 embed1.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed1.set_footer(text=Help.version1)
+                embed1.set_footer(text=get_current_version(self.client))
 
                 await ctx.send(embed=embed1, delete_after=10)
                 return
@@ -164,7 +165,7 @@ class utility(commands.Cog):
         # Ajouter un message d'information
         embed = discord.Embed(title="Message Envoyé!", description=f"Message envoyé à {destination.mention}", color=discord.Color.green())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(self.client))
         await ctx.send(embed=embed, delete_after=10)
 
 
@@ -182,7 +183,7 @@ class utility(commands.Cog):
 
             # Envoie d'un message global indiquant que la suppression des DMs est en cours
             embed = discord.Embed(title="Suppression des messages privés en cours...", color=discord.Color.yellow())
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             status_msg = await ctx.send(embed=embed, delete_after=10)
 
             tasks = []
@@ -203,7 +204,7 @@ class utility(commands.Cog):
                     if deleted_count > 0:
                         embed = discord.Embed(title=f"Messages privés de **{member.name}#{member.discriminator}** supprimés !", color=discord.Color.green())
                         embed.add_field(name="Nombre de messages supprimés", value=str(deleted_count))
-                        embed.set_footer(text=Help.version1)
+                        embed.set_footer(text=get_current_version(self.client))
                         tasks.append(ctx.send(embed=embed, delete_after=10))
                         await asyncio.sleep(self.rate_limit_delay)  # Limite de taux
                     
@@ -216,7 +217,7 @@ class utility(commands.Cog):
                 embed1 = discord.Embed(title=f"Messages privés supprimés au total.", description=f"{total_deleted}", color=discord.Color.purple())
             else:
                 embed1 = discord.Embed(title="Aucun message privé à supprimer.", color=discord.Color.red())
-            embed1.set_footer(text=Help.version1)
+            embed1.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed1, delete_after=10)
             
         except Exception as e:
@@ -247,7 +248,7 @@ class utility(commands.Cog):
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
         embed.add_field(name='Question: ', value=f'{question}')
         embed.add_field(name='Réponse: ', value=f'{response}')
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(self.client))
         # Utiliser le chemin centralisé depuis main.py
         with open(self.client.paths['8ball_png'], "rb") as f:
             image_data = f.read()
@@ -272,7 +273,7 @@ class utility(commands.Cog):
         embed=discord.Embed(title="Wiliam Hilaire à parlé!", color=discord.Color.purple())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
         embed.add_field(name='Hilaire à dit: ', value=f'{responses}')
-        embed.set_footer(text=Help.version1)
+        embed.set_footer(text=get_current_version(self.client))
         # Utiliser le chemin centralisé depuis main.py
         with open(self.client.paths['hilaire_png'], "rb") as f:
             image_data = f.read()

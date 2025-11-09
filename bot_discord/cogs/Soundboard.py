@@ -4,6 +4,7 @@ import asyncio
 import traceback
 import os
 from cogs import Help
+from cogs.Help import get_current_version
 import mutagen
 from mutagen.mp3 import MP3
 from mutagen.oggvorbis import OggVorbis
@@ -109,13 +110,13 @@ class Soundboard(commands.Cog):
         if self.random_task and not self.random_task.done():
             embed91 = discord.Embed(title= "SoundBoard Random Erreur", description=f"La lecture aléatoire est déjà en cours.", color=discord.Color.yellow())
             embed91.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed91.set_footer(text=Help.version1)
+            embed91.set_footer(text=get_current_version(self.client))
             return await ctx.send(embed = embed91, delete_after=5)
 
         self.random_task = asyncio.create_task(self.play_random_sound(ctx.channel.id))
         embed20 = discord.Embed(title= "SoundBoard Random", description=f"Lecture aléatoire.", color=discord.Color.green())
         embed20.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed20.set_footer(text=Help.version1)
+        embed20.set_footer(text=get_current_version(self.client))
         await ctx.send(embed = embed20, delete_after=5)
         
     @commands.command()
@@ -127,13 +128,13 @@ class Soundboard(commands.Cog):
             voice_client.stop()
             embed98 = discord.Embed(title="SoundBoard Random Skip", description="Le son en cours de lecture a été skip.", color=discord.Color.green())
             embed98.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed98.set_footer(text=Help.version1)
+            embed98.set_footer(text=get_current_version(self.client))
             print("le son de la lecture aléatoire à été skip")
             await ctx.send(embed=embed98, delete_after=5)
         else:
             embed89 = discord.Embed(title="SoundBoard Random Skip Erreur", description="Aucun son n'est en cours de lecture.", color=discord.Color.yellow())
             embed89.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed89.set_footer(text=Help.version1)
+            embed89.set_footer(text=get_current_version(self.client))
             print("Aucun son n'est en cours dans la lecture aléatoire")
             await ctx.send(embed=embed89, delete_after=5)
 
@@ -162,20 +163,20 @@ class Soundboard(commands.Cog):
                             source = discord.FFmpegPCMAudio(file_path, executable=self.ffmpeg_path)
                             voice_client.play(source)
                             embed90 = discord.Embed(title= "SoundBoard Random", description=f"Joue {sound_name}", color=discord.Color.green())
-                            embed90.set_footer(text=Help.version1)
+                            embed90.set_footer(text=get_current_version(self.client))
                             print(f"Joue {sound_name}")
                             await self.client.get_channel(channel_id).send(embed=embed90, delete_after=15)
                             print("En attente de la fin de l'audio en cours de lecture")
                     else:
                         embed45 = discord.Embed(title= "SoundBoard Random", description=f"Arrêt de la lecture aléatoire.", color=discord.Color.red())
-                        embed45.set_footer(text=Help.version1)
+                        embed45.set_footer(text=get_current_version(self.client))
                         print("Arrêt de la lecture aléatoire")
                         await self.client.get_channel(channel_id).send(embed=embed45, delete_after=5)
                         break
             else:
                 # Plus connecté, arrêter la tâche
                 embed45 = discord.Embed(title= "SoundBoard Random", description=f"Arrêt de la lecture aléatoire (déconnexion).", color=discord.Color.red())
-                embed45.set_footer(text=Help.version1)
+                embed45.set_footer(text=get_current_version(self.client))
                 print("Arrêt de la lecture aléatoire - déconnexion")
                 try:
                     await self.client.get_channel(channel_id).send(embed=embed45, delete_after=5)
@@ -191,13 +192,13 @@ class Soundboard(commands.Cog):
             self.random_task.cancel()
             embed = discord.Embed(title="SoundBoard Random Stop", description="Arrêt de la lecture aléatoire réussi", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             print("Lecture aléatoire arreté")
             await ctx.send(embed=embed, delete_after=5)
         else:
             embed = discord.Embed(title="SoundBoard Random Stop Erreur", description="La lecture aléatoire n'est pas en cours.", color=discord.Color.yellow())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             print("Lecture aléatoire erreur pas en cours")
             await ctx.send(embed=embed, delete_after=5)    
     
@@ -206,7 +207,7 @@ class Soundboard(commands.Cog):
         if not ctx.author.voice:
             embed = discord.Embed(title= "SoundBoard Erreur", description="Vous devez être connecté à un salon vocal pour utiliser cette commande.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=Help.version1)
+            embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=5)
             return None
         
@@ -258,13 +259,13 @@ class Soundboard(commands.Cog):
                     # Erreur de connexion Discord (déjà connecté ailleurs, etc.)
                     embed = discord.Embed(title= "SoundBoard Erreur", description=f"Conflit de connexion vocale. Le bot est peut-être utilisé par une autre fonctionnalité.", color=discord.Color.red())
                     embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                    embed.set_footer(text=Help.version1)
+                    embed.set_footer(text=get_current_version(self.client))
                     await ctx.send(embed=embed, delete_after=5)
                     return None
                 except Exception as e:
                     embed = discord.Embed(title= "SoundBoard Erreur", description=f"Impossible de se déplacer vers le canal vocal: {str(e)}", color=discord.Color.red())
                     embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                    embed.set_footer(text=Help.version1)
+                    embed.set_footer(text=get_current_version(self.client))
                     await ctx.send(embed=embed, delete_after=5)
                     return None
         else:
@@ -276,13 +277,13 @@ class Soundboard(commands.Cog):
                 # Erreur de connexion Discord
                 embed = discord.Embed(title= "SoundBoard Erreur", description=f"Conflit de connexion vocale. Le bot est peut-être utilisé par une autre fonctionnalité.", color=discord.Color.red())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=Help.version1)
+                embed.set_footer(text=get_current_version(self.client))
                 await ctx.send(embed=embed, delete_after=5)
                 return None
             except Exception as e:
                 embed = discord.Embed(title= "SoundBoard Erreur", description=f"Impossible de se connecter au canal vocal: {str(e)}", color=discord.Color.red())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=Help.version1)
+                embed.set_footer(text=get_current_version(self.client))
                 await ctx.send(embed=embed, delete_after=5)
                 return None
  
@@ -296,7 +297,7 @@ class Soundboard(commands.Cog):
         if not sound_files:
             embed54 = discord.Embed(title= "SoundBoard List", description="Aucun fichier dans le dossier **Sounds**", color=discord.Color.random())
             embed54.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed54.set_footer(text=Help.version1)
+            embed54.set_footer(text=get_current_version(self.client))
             await ctx.send(embed = embed54, delete_after=10)
             return
 
@@ -332,7 +333,7 @@ class Soundboard(commands.Cog):
         embed13.add_field(name="Le temps", value="hh:mm:ss", inline=True)
         embed13.add_field(name="Le nom", value="Test", inline=True)
         embed13.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed13.set_footer(text=Help.version1)
+        embed13.set_footer(text=get_current_version(self.client))
         await ctx.send(embed = embed13)
         
     @commands.command()
@@ -359,7 +360,7 @@ class Soundboard(commands.Cog):
             file_path2 = f"{self.sounds_dir}/blepair.mp3"
             embed16 = discord.Embed(title= "SoundBoard Play", description=f"Pour jouer un son, utilisez la commande avec un numéro de son valide. Exemple : `=splay 1`", color=discord.Color.blue())
             embed16.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed16.set_footer(text=Help.version1)
+            embed16.set_footer(text=get_current_version(self.client))
             source = discord.FFmpegPCMAudio(file_path2, executable=self.ffmpeg_path)
             voice_client.play(source)
             return await ctx.send(embed = embed16, delete_after=5)
@@ -367,7 +368,7 @@ class Soundboard(commands.Cog):
         if sound_num <= 0 or sound_num > len(sound_files):
             embed5 = discord.Embed(title= "SoundBoard Play Erreur", description="Numéro audio invalide.", color=discord.Color.red())
             embed5.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed5.set_footer(text=Help.version1)
+            embed5.set_footer(text=get_current_version(self.client))
             return await ctx.send(embed = embed5, delete_after=5)
 
         sound_name = sound_files[sound_num-1 if sound_num > 0 else 0]
@@ -380,7 +381,7 @@ class Soundboard(commands.Cog):
         # Joue le fichier audio
         embed9 = discord.Embed(title= "SoundBoard Play", description=f"Joue {sound_name}", color=discord.Color.green())
         embed9.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed9.set_footer(text=Help.version1)
+        embed9.set_footer(text=get_current_version(self.client))
         await ctx.send(embed = embed9, delete_after=10)
         source = discord.FFmpegPCMAudio(file_path, executable=self.ffmpeg_path)
         voice_client.play(source)
@@ -403,7 +404,7 @@ class Soundboard(commands.Cog):
             
             embed6 = discord.Embed(title= "SoundBoard Play Outro", description="Expulsion des utilisateurs du salon vocal.", color=discord.Color.yellow())
             embed6.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed6.set_footer(text=Help.version1)
+            embed6.set_footer(text=get_current_version(self.client))
             await ctx.channel.send(embed = embed6, delete_after=5)
 
     @commands.command()
@@ -416,12 +417,12 @@ class Soundboard(commands.Cog):
             voice_client.stop()
             embed15 = discord.Embed(title= "SoundBoard Stop", description="Arrêt de la lecture réussi", color=discord.Color.red())
             embed15.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed15.set_footer(text=Help.version1)
+            embed15.set_footer(text=get_current_version(self.client))
             await ctx.send(embed = embed15, delete_after=5)
         else:
             embed8 = discord.Embed(title= "SoundBoard Stop Erreur", description="Je ne suis pas en train de jouer de la musique.", color=discord.Color.yellow())
             embed8.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed8.set_footer(text=Help.version1)
+            embed8.set_footer(text=get_current_version(self.client))
             await ctx.send(embed = embed8, delete_after=5)
     
     @commands.command()
@@ -434,14 +435,14 @@ class Soundboard(commands.Cog):
             print("Je ne suis pas connecté")
             embed10 = discord.Embed(title= "SoundBoard Leave Erreur", description="Je ne suis pas connecté à un salon vocal.", color=discord.Color.yellow())
             embed10.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed10.set_footer(text=Help.version1)
+            embed10.set_footer(text=get_current_version(self.client))
             return await ctx.send(embed = embed10, delete_after=5)
             
         await voice_client.disconnect()
         self.voice_client = None
         embed12 = discord.Embed(title= "SoundBoard Leave", description="Déconnexion du salon vocal réussi", color=discord.Color.green())
         embed12.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed12.set_footer(text=Help.version1)
+        embed12.set_footer(text=get_current_version(self.client))
         await ctx.send(embed = embed12, delete_after=5)
     
     @commands.command()
@@ -454,13 +455,13 @@ class Soundboard(commands.Cog):
                 await member.move_to(None)
                 embed42 = discord.Embed(title= "Vocal Kick", description=f"**{member.name}#{member.discriminator}** a été expulsé du salon vocal", color=discord.Color.green())
                 embed42.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed42.set_footer(text=Help.version1)
+                embed42.set_footer(text=get_current_version(self.client))
                 await ctx.send(embed = embed42, delete_after=5)
             else:
                 await ctx.send("")
                 embed46 = discord.Embed(title= "Vocal Kick Erreur", description="L'utilisateur spécifié ne peut pas être expulsé.", color=discord.Color.red())
                 embed46.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed46.set_footer(text=Help.version1)
+                embed46.set_footer(text=get_current_version(self.client))
                 await ctx.send(embed = embed46, delete_after=5)
         else:
             # Récupérer la connexion vocale depuis le bot
@@ -475,7 +476,7 @@ class Soundboard(commands.Cog):
 
             embed47 = discord.Embed(title= "Vocal Kick", description="Tous les utilisateurs ont été expulsés du salon vocal", color=discord.Color.green())
             embed47.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed47.set_footer(text=Help.version1)
+            embed47.set_footer(text=get_current_version(self.client))
             await ctx.send(embed = embed47, delete_after=5)            
 
 

@@ -2,12 +2,55 @@ import discord
 from discord.ext import commands
 import io
 import requests
-from cogs import Help
 import traceback
 from datetime import datetime
+import os
+import json
 
-version1="Bot V.0912-25"
-version2 ="`refactoring complet du code, optimisation et amélioration de la structure, ajout de la résolution automatique des liens courts (TikTok, Reddit), conversion améliorée des liens vers des services d'embed optimisés, utilisation d'aiohttp pour des requêtes HTTP asynchrones non-bloquantes`"
+# Variable version1 pour compatibilité (sera remplacée par get_current_version quand possible)
+version1 = "Bot V.NULL"
+
+def get_version_info(client):
+    """Lit les informations de version depuis le fichier update_logs.json"""
+    try:
+        update_logs_path = client.paths.get('update_logs_json')
+        if os.path.exists(update_logs_path):
+            with open(update_logs_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return data
+        else:
+            # Valeurs par défaut si le fichier n'existe pas
+            print(f"Fichier update_logs.json introuvable à: {update_logs_path}")
+            return {
+                "current_version": "Bot V.NULL",
+                "history": []
+            }
+    except Exception as e:
+        print(f"Erreur lors de la lecture de update_logs.json: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "current_version": "Bot V.NULL",
+            "history": []
+        }
+
+def get_current_version(client):
+    """Retourne la version actuelle"""
+    data = get_version_info(client)
+    return data.get("current_version", "Bot V.NULL")
+
+def get_latest_logs(client):
+    """Retourne les logs de la dernière version"""
+    data = get_version_info(client)
+    history = data.get("history", [])
+    if history:
+        return history[0].get("logs", "Aucun log disponible.")
+    return "Aucun log de mise à jour disponible."
+
+def get_all_history(client):
+    """Retourne tout l'historique des versions"""
+    data = get_version_info(client)
+    return data.get("history", [])
 
 
 class Help(commands.Cog):   
@@ -15,6 +58,10 @@ class Help(commands.Cog):
         self.target_user_id = client.config['target_user_id']  # Replace with your Discord user ID
         self.client = client
         self.webhook_url = client.config['webhook_url'] # Remplacez WEBHOOK
+    
+    def get_version_footer(self):
+        """Helper pour obtenir la version pour les footers"""
+        return get_current_version(self.client)
  
 
     @commands.command(name="report")
@@ -25,7 +72,7 @@ class Help(commands.Cog):
             
         ticket_number = datetime.now().strftime("%d%m%Y")  # Créez un numéro de ticket basé sur la date et l'heure
         data = {
-            "content": f"**Bug signalé !**\n\nTicket: **#{ticket_number}{ctx.author.name}**\nPar: **{ctx.author.name}**\nID: **{ctx.author.id}**\nMention: {ctx.author.mention}\n\nContenu: {message}\n\n**{version1}**"
+            "content": f"**Bug signalé !**\n\nTicket: **#{ticket_number}{ctx.author.name}**\nPar: **{ctx.author.name}**\nID: **{ctx.author.id}**\nMention: {ctx.author.mention}\n\nContenu: {message}\n\n**{self.get_version_footer()}**"
         }
         headers = {
             "Content-Type": "application/json"
@@ -39,7 +86,7 @@ class Help(commands.Cog):
             embedc2.add_field(name="",value=f"Ticket : **#{ticket_number}{ctx.author.name}**", inline=False)
             embedc2.add_field(name="",value="Nous allons le corriger dès que possible!", inline=False)
             embedc2.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embedc2.set_footer(text=version1)
+            embedc2.set_footer(text=self.get_version_footer())
             await user.send(embed=embedc2)
             
             # Envoyer un message de confirmation dans le canal actuel
@@ -47,13 +94,13 @@ class Help(commands.Cog):
             embedc.add_field(name="",value=f"Ticket : **#{ticket_number}{ctx.author.name}**", inline=False)
             embedc.add_field(name="",value="Nous allons le corriger dès que possible.", inline=False)
             embedc.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embedc.set_footer(text=version1)
+            embedc.set_footer(text=self.get_version_footer())
             await ctx.send(embed=embedc, delete_after=5)
         else:
             embedc1 = discord.Embed(title="Erreur de signalement.", description="Erreur lors de l'envoi du message.", color=discord.Color.red())
             embedc1.add_field(name="",value="Veuillez réessayer plus tard.", inline=False)
             embedc1.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embedc1.set_footer(text=version1)
+            embedc1.set_footer(text=self.get_version_footer())
             await ctx.send(embed=embedc1, delete_after=5)
 
 
@@ -82,7 +129,7 @@ class Help(commands.Cog):
         embed_message.add_field(name="sync, syncslash, reloadslash", value="Re-synchronise les commandes slash =sync (owner only)")
         embed_message.add_field(name="clearslash, clearslashcommands, deleteslash", value="Supprime toutes les commandes slash =clearslash (owner only)")
         embed_message.add_field(name="slashinfo, slashdebug, cmdinfo", value="Affiche des infos de diagnostic sur les commandes slash =slashinfo (owner only)")
-        embed_message.set_footer(text=version1)
+        embed_message.set_footer(text=self.get_version_footer())
 
         embed_message2 = discord.Embed(
             title="Helps Soundboard",
@@ -123,6 +170,7 @@ class Help(commands.Cog):
         embed_message3.add_field(name="level, lvl", value="Voir votre niveau =level [@user] (optionnel)")
         embed_message3.add_field(name="resetlevel, rsl", value="Reset tous les niveaux =resetlevel (messages perms only)")
         embed_message3.add_field(name="levelsettings, lvls", value="Active/désactive le système de leveling =levelsettings (admins perms only)")
+        embed_message3.add_field(name="levelboard, levelleaderboard, levellb, lvlboard", value="Affiche le leaderboard des levels =levelboard")
         
         embed_message4 = discord.Embed(
         title="Helps Mods",
@@ -220,7 +268,7 @@ class Help(commands.Cog):
         embed_message7.add_field(name="clearq", value="Vide la file d'attente =clearq")
         embed_message7.add_field(name="loop", value="Active/désactive la boucle =loop")
         embed_message7.add_field(name="File d'attente", value="La file d'attente fonctionne uniquement entre vidéos YouTube. Si Soundboard ou TTS joue, YouTube interrompt et joue directement.", inline=False)
-        embed_message7.set_footer(text=version1)
+        embed_message7.set_footer(text=self.get_version_footer())
 
         await ctx.send(embed=embed_message)
         await ctx.send(embed=embed_message4)
@@ -232,16 +280,76 @@ class Help(commands.Cog):
     
     
     @commands.command(aliases=["v"])
-    async def version(self, ctx):
+    async def version(self, ctx, history: str = None):
+        """Affiche la version du bot. Utilisez =version history pour voir l'historique complet"""
         if isinstance(ctx.channel, discord.TextChannel):
             await ctx.message.delete()
+        
+        version_info = get_version_info(self.client)
+        current_version = get_current_version(self.client)
+        latest_logs = get_latest_logs(self.client)
+        
+        # Si l'utilisateur demande l'historique complet
+        if history and history.lower() in ["history", "historique", "h"]:
+            all_history = get_all_history(self.client)
+            if not all_history:
+                embed = discord.Embed(
+                    title="Historique des Versions",
+                    description="Aucun historique disponible.",
+                    color=discord.Color.orange()
+                )
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                await ctx.send(embed=embed, delete_after=10)
+                return
+            
+            # Créer un embed avec l'historique complet
+            embed = discord.Embed(
+                title="📜 Historique des Versions",
+                description=f"**Version actuelle:** {current_version}\n\n",
+                color=discord.Color.blue()
+            )
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            
+            # Ajouter chaque version de l'historique (limité à 10 pour éviter les embeds trop longs)
+            for idx, entry in enumerate(all_history[:10], 1):
+                version = entry.get("version", "Inconnue")
+                date = entry.get("date", "Date inconnue")
+                logs = entry.get("logs", "Aucun log")
+                # Limiter la longueur des logs pour éviter les embeds trop longs
+                if len(logs) > 200:
+                    logs = logs[:197] + "..."
+                embed.add_field(
+                    name=f"{idx}. {version} - {date}",
+                    value=f"`{logs}`",
+                    inline=False
+                )
+            
+            if len(all_history) > 10:
+                embed.set_footer(text=f"Affichage des 10 dernières versions sur {len(all_history)} totales")
+            else:
+                embed.set_footer(text=f"{len(all_history)} version(s) dans l'historique")
+            
+            await ctx.send(embed=embed)
+            return
+        
+        # Affichage normal de la version actuelle
         embed = discord.Embed(title="Versions du Bot", color=discord.Color.random())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
         embed.add_field(name="", value="")
-        embed.add_field(name="Last Version", value=version1)
-        embed.add_field(name="Update Logs", value=version2)
+        embed.add_field(name="Version Actuelle", value=current_version)
+        
+        # Ajouter la date de la dernière version si disponible
+        all_history = get_all_history(self.client)
+        if all_history and len(all_history) > 0:
+            latest_date = all_history[0].get("date", "")
+            if latest_date:
+                embed.add_field(name="Date de la dernière mise à jour", value=latest_date)
+        
+        embed.add_field(name="Derniers Logs", value=f"`{latest_logs}`", inline=False)
         embed.add_field(name="", value="")
+        embed.add_field(name="📜 Historique", value="Utilisez `=version history` pour voir l'historique complet", inline=False)
         embed.add_field(name="Date format", value="`DD/MM/YYYY`")
+        
         # Utiliser le chemin centralisé depuis main.py
         with open(self.client.paths['version_jpg'], "rb") as f:
             image_data = f.read()
@@ -257,7 +365,7 @@ class Help(commands.Cog):
         
         embed = discord.Embed(title=f"Pong! {bot_latency} ms.", color=discord.Color.random())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed.set_footer(text=version1)
+        embed.set_footer(text=self.get_version_footer())
         await ctx.send(embed=embed)
 
 

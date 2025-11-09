@@ -1,0 +1,2 @@
+Refactoring complet du code, optimisation et amélioration de la structure, ajout de la résolution automatique des liens courts (TikTok, Reddit), conversion améliorée des liens vers des services d'embed optimisés, utilisation d'aiohttp pour des requêtes HTTP asynchrones non-bloquantes
+
