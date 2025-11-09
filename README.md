@@ -7,17 +7,15 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 
 ## 📋 Table of Contents
 
-- [Features](#features)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Project Structure](#project-structure)
-- [Version](#version)
-- [Slash Commands](#slash-commands)
-- [Error Handling](#error-handling)
-- [Notes](#notes)
-- [Warnings](#warnings)
-- [Bug Reporting](#bug-reporting)
-
+- [Features](#-features)
+- [Installation](#-installation)
+- [Configuration](#️-configuration)
+- [Project Structure](#-project-structure)
+- [Slash Commands](#-slash-commands)
+- [Error Handling](#️-error-handling)
+- [Notes](#-notes)
+- [Warnings](#️-warnings)
+- [Bug Reporting](#-bug-reporting)
 
 ---
 
