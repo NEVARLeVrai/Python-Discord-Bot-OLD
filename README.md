@@ -24,6 +24,8 @@ Un bot Discord complet avec de nombreuses fonctionnalités, développé en Pytho
 - **`=version`** ou **`=v`** - Affiche la version du bot
 - **`=report [message]`** - Signale un bug ou donne un feedback
 - **`=stop`** - Arrête le bot (owner only)
+- **`=sync`** ou **`=syncslash`** ou **`=reloadslash`** - Re-synchronise les commandes slash (owner only)
+- **`=slashinfo`** ou **`=slashdebug`** ou **`=cmdinfo`** - Affiche des informations de diagnostic sur les commandes slash (owner only)
 
 ### Modération (Mods)
 - **`=clear [nombre]`** - Supprime des messages (max 70, messages perms)
@@ -236,10 +238,20 @@ bot_discord/
 
 ## 🔧 Commandes slash
 
-Le bot supporte les commandes slash Discord. Notez que les commandes slash peuvent prendre jusqu'à 1 heure pour apparaître après la synchronisation.
+Le bot supporte les commandes slash Discord. Les commandes slash sont synchronisées automatiquement au démarrage du bot.
 
-Commandes slash disponibles :
+### Commandes slash disponibles
 - `/ping` - Affiche le ping du bot
+
+### Synchronisation des commandes slash
+- Les commandes sont synchronisées automatiquement au démarrage
+- Utilisez `=sync` pour forcer une re-synchronisation (owner only)
+- Utilisez `=slashinfo` pour afficher des informations de diagnostic (owner only)
+- La synchronisation par serveur est instantanée
+- La synchronisation globale peut prendre jusqu'à 1 heure pour apparaître
+
+### Important
+Pour que les commandes slash fonctionnent, le bot doit être invité avec le scope `applications.commands` en plus du scope `bot`.
 
 ## 🛡️ Gestion des erreurs
 

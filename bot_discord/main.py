@@ -11,7 +11,9 @@ import traceback
 
 
 
-client = commands.Bot(command_prefix="=", intents= discord.Intents.all())
+# Initialiser le bot avec les intents nécessaires
+intents = discord.Intents.all()
+client = commands.Bot(command_prefix="=", intents=intents)
 
 # Chemins centralisés pour les fichiers et exécutables
 PATHS = {
@@ -55,32 +57,42 @@ activities = cycle([
 
 
 # Définir les commandes slash AVANT on_ready()
+# IMPORTANT: Les commandes doivent être définies avant la synchronisation
 @client.tree.command(name="ping", description="Affiche le ping du bot en ms")
 async def ping(interaction: discord.Interaction):
-    bot_latency = round(client.latency * 1000)
-    await interaction.response.send_message(f"Pong! {bot_latency} ms.")
+    """Commande slash de test pour vérifier le ping du bot"""
+    try:
+        bot_latency = round(client.latency * 1000)
+        await interaction.response.send_message(f"Pong! {bot_latency} ms.")
+    except Exception as e:
+        try:
+            if not interaction.response.is_done():
+                await interaction.response.send_message(f"Erreur: {str(e)}", ephemeral=True)
+        except:
+            pass
 
 @client.event
 async def on_ready():
+    print(f"Bot connecté: {client.user}")
+    print(f"Nombre de serveurs: {len(client.guilds)}\n")
+    
     await asyncio.sleep(1)
     change_activity.start()
     
-    # Synchroniser les commandes slash après que le bot soit connecté
-    # ATTENTION: Les commandes peuvent prendre jusqu'à 1 heure pour apparaître
+    # Synchroniser les commandes slash
     try:
-        synced = await client.tree.sync()
-        print(f"\n Synchronisé {len(synced)} commande(s) slash")
-        for cmd in synced:
-            print(f"   - /{cmd.name}")
+        # Synchronisation par serveur (instantanée)
+        for guild in client.guilds:
+            try:
+                await client.tree.sync(guild=guild)
+            except:
+                pass
+        
+        # Synchronisation globale
+        await client.tree.sync()
+        print("Commandes slash synchronisées\n")
     except Exception as e:
-        print(f"\n Erreur lors de la synchronisation des commandes slash: {e}")
-        print("Vérifiez que le bot a été invité avec le scope 'applications.commands'")
-        traceback.print_exc()
-    
-    print("")
-    print("NOTE: Les commandes slash peuvent prendre jusqu'à 1 heure pour apparaître.")
-    print("      Si elles n'apparaissent pas, réinvitez le bot avec le scope 'applications.commands'")
-    print("")
+        print(f"Erreur lors de la synchronisation: {e}\n")
 
 
 async def load():
@@ -386,6 +398,89 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
     command_name = interaction.command.name if interaction.command else 'inconnue'
     print(f"\nErreur non gérée dans la commande slash {command_name}:")
     traceback.print_exception(type(error), error, error.__traceback__)      
+
+# Commande pour re-synchroniser les commandes slash
+@client.command(name="sync", aliases=["syncslash", "reloadslash"])
+@commands.is_owner()
+async def sync_commands(ctx):
+    """Re-synchronise les commandes slash (owner only)"""
+    await ctx.message.delete()
+    
+    try:
+        # Synchroniser sur le serveur actuel
+        synced_guild = await client.tree.sync(guild=ctx.guild)
+        # Synchroniser globalement
+        synced_global = await client.tree.sync()
+        
+        embed = discord.Embed(
+            title="✓ Synchronisation réussie",
+            description=f"Commandes synchronisées sur '{ctx.guild.name}'",
+            color=discord.Color.green()
+        )
+        
+        if synced_guild or synced_global:
+            count = len(synced_guild) if synced_guild else len(synced_global) if synced_global else 0
+            embed.add_field(
+                name="Commandes synchronisées",
+                value=f"{count} commande(s) disponible(s)",
+                inline=False
+            )
+        
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
+    except Exception as e:
+        embed = discord.Embed(
+            title="✗ Erreur de synchronisation",
+            description=f"Erreur: {str(e)}",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
+
+# Commande pour diagnostiquer les problèmes de commandes slash
+@client.command(name="slashinfo", aliases=["slashdebug", "cmdinfo"])
+@commands.is_owner()
+async def slash_info(ctx):
+    """Affiche des informations de diagnostic sur les commandes slash (owner only)"""
+    await ctx.message.delete()
+    
+    embed = discord.Embed(
+        title="🔍 Diagnostic des Commandes Slash",
+        color=discord.Color.blue()
+    )
+    
+    # Informations du bot
+    embed.add_field(
+        name="Bot Information",
+        value=f"**Nom:** {client.user.name}\n**ID:** {client.user.id}",
+        inline=False
+    )
+    
+    # Commandes locales
+    local_commands = []
+    try:
+        commands_list = client.tree.get_commands()
+        for cmd in commands_list:
+            local_commands.append(cmd.name)
+    except:
+        pass
+    
+    embed.add_field(
+        name="Commandes Enregistrées",
+        value=f"{len(local_commands)} commande(s): {', '.join([f'`/{cmd}`' for cmd in local_commands]) if local_commands else 'Aucune'}",
+        inline=False
+    )
+    
+    # Lien d'invitation
+    invite_url = f"https://discord.com/api/oauth2/authorize?client_id={client.user.id}&permissions=8&scope=bot%20applications.commands"
+    embed.add_field(
+        name="🔗 Lien d'Invitation",
+        value=f"[Cliquez ici]({invite_url})",
+        inline=False
+    )
+    
+    embed.set_footer(text=Help.version1)
+    await ctx.send(embed=embed, delete_after=30)
 
 # stop the bot
 @client.command()
