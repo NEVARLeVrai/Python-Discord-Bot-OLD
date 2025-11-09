@@ -16,7 +16,7 @@ class Mods_slash(commands.Cog):
         self.mods_cog = None
         # Initialiser les valeurs par défaut pour éviter les erreurs
         self.warns = {}
-        self.banned_words = []
+        self.banned_words = {}  # Dictionnaire par guild_id
         self.protected_role_id = 1236660715151167548
         self.blocked_user_id = 440168985615400984
         self.mp_conversations = {}
@@ -38,7 +38,8 @@ class Mods_slash(commands.Cog):
                 print(f"Mods_slash: Système de warns synchronisé depuis le cog Mods. {len(self.warns)} serveur(s) avec des warns.")
             if hasattr(self.mods_cog, 'banned_words'):
                 self.banned_words = self.mods_cog.banned_words
-                print(f"Mods_slash: Système de mots bannis synchronisé depuis le cog Mods. {len(self.banned_words)} mot(s) banni(s).")
+                total_words = sum(len(words) for words in self.banned_words.values()) if isinstance(self.banned_words, dict) else 0
+                print(f"Mods_slash: Système de mots bannis synchronisé depuis le cog Mods. {len(self.banned_words)} serveur(s) avec des mots bannis ({total_words} mot(s) au total).")
             if hasattr(self.mods_cog, 'protected_role_id'):
                 self.protected_role_id = self.mods_cog.protected_role_id
             if hasattr(self.mods_cog, 'blocked_user_id'):
@@ -52,12 +53,19 @@ class Mods_slash(commands.Cog):
     
     def _load_from_files(self):
         """Charge les données depuis les fichiers JSON si le cog n'est pas disponible"""
-        # Charger les warns
+        # Charger les warns (organisés par serveur)
         try:
             warns_path = self.client.paths['warns_json']
             if os.path.exists(warns_path):
                 with open(warns_path, 'r', encoding='utf-8') as f:
-                    self.warns = json.load(f)
+                    data = json.load(f)
+                    # Vérifier que c'est bien un dictionnaire (format par serveur)
+                    if isinstance(data, dict):
+                        self.warns = data
+                    else:
+                        # Si c'est un autre format (liste ou autre), initialiser un dictionnaire vide
+                        # L'ancien format n'était pas organisé par serveur, on le supprime
+                        self.warns = {}
                     print(f"Mods_slash: Warns chargés depuis le fichier. {len(self.warns)} serveur(s) avec des warns.")
             else:
                 self.warns = {}
@@ -71,14 +79,20 @@ class Mods_slash(commands.Cog):
             banned_words_path = self.client.paths['banned_words_json']
             if os.path.exists(banned_words_path):
                 with open(banned_words_path, 'r', encoding='utf-8') as f:
-                    self.banned_words = json.load(f)
-                    print(f"Mods_slash: Mots bannis chargés depuis le fichier. {len(self.banned_words)} mot(s) banni(s).")
+                    data = json.load(f)
+                    # Migration : si c'est une liste (ancien format), convertir en dictionnaire vide
+                    if isinstance(data, list):
+                        self.banned_words = {}
+                    else:
+                        self.banned_words = data
+                    total_words = sum(len(words) for words in self.banned_words.values()) if isinstance(self.banned_words, dict) else 0
+                    print(f"Mods_slash: Mots bannis chargés depuis le fichier. {len(self.banned_words)} serveur(s) avec des mots bannis ({total_words} mot(s) au total).")
             else:
-                self.banned_words = []
-                print("Mods_slash: Fichier banned_words.json introuvable, initialisation d'une liste vide.")
+                self.banned_words = {}
+                print("Mods_slash: Fichier banned_words.json introuvable, initialisation d'un dictionnaire vide.")
         except Exception as e:
             print(f"Mods_slash: Erreur lors du chargement des mots bannis depuis le fichier: {e}")
-            self.banned_words = []
+            self.banned_words = {}
 
     def save_warns(self):
         """Sauvegarde les warns"""
@@ -127,13 +141,20 @@ class Mods_slash(commands.Cog):
         if not self.mods_cog:
             return
         
-        # Vérifier et initialiser warns si nécessaire
+        # Vérifier et initialiser warns si nécessaire (organisés par serveur)
         if not hasattr(self.mods_cog, 'warns') or self.mods_cog.warns is None:
             try:
                 warns_path = self.client.paths['warns_json']
                 if os.path.exists(warns_path):
                     with open(warns_path, 'r', encoding='utf-8') as f:
-                        self.mods_cog.warns = json.load(f)
+                        data = json.load(f)
+                        # Vérifier que c'est bien un dictionnaire (format par serveur)
+                        if isinstance(data, dict):
+                            self.mods_cog.warns = data
+                        else:
+                            # Si c'est un autre format (liste ou autre), initialiser un dictionnaire vide
+                            # L'ancien format n'était pas organisé par serveur, on le supprime
+                            self.mods_cog.warns = {}
                 else:
                     self.mods_cog.warns = {}
             except Exception as e:
@@ -146,30 +167,59 @@ class Mods_slash(commands.Cog):
                 banned_words_path = self.client.paths['banned_words_json']
                 if os.path.exists(banned_words_path):
                     with open(banned_words_path, 'r', encoding='utf-8') as f:
-                        self.mods_cog.banned_words = json.load(f)
+                        data = json.load(f)
+                        # Migration : si c'est une liste (ancien format), convertir en dictionnaire vide
+                        if isinstance(data, list):
+                            self.mods_cog.banned_words = {}
+                        else:
+                            self.mods_cog.banned_words = data
                 else:
-                    self.mods_cog.banned_words = []
+                    self.mods_cog.banned_words = {}
             except Exception as e:
                 print(f"Erreur lors du chargement des mots bannis dans le cog Mods: {e}")
-                self.mods_cog.banned_words = []
+                self.mods_cog.banned_words = {}
     
     def ensure_warns_loaded(self):
-        """S'assure que les warns sont chargés"""
+        """S'assure que les warns sont chargés (organisés par serveur)"""
+        # Initialiser si None
+        if self.warns is None:
+            self.warns = {}
+        
+        # Si warns n'est pas un dict, le réinitialiser
+        if not isinstance(self.warns, dict):
+            self.warns = {}
+        
+        # Si warns est vide, essayer de charger depuis le cog
         if not self.warns:
             mods_cog = self.get_mods_cog()
-            if mods_cog and hasattr(mods_cog, 'warns'):
+            if mods_cog and hasattr(mods_cog, 'warns') and mods_cog.warns is not None and isinstance(mods_cog.warns, dict):
                 self.warns = mods_cog.warns
-            elif not self.warns:
+            else:
                 self._load_from_files()
+                # S'assurer que c'est un dict après chargement
+                if not isinstance(self.warns, dict):
+                    self.warns = {}
     
     def ensure_banned_words_loaded(self):
         """S'assure que les mots bannis sont chargés"""
-        if not self.banned_words:
+        # Initialiser si None
+        if self.banned_words is None:
+            self.banned_words = {}
+        
+        # Si banned_words n'est pas un dict, le réinitialiser
+        if not isinstance(self.banned_words, dict):
+            self.banned_words = {}
+        
+        # Si banned_words est vide ou None, essayer de charger depuis le cog
+        if not self.banned_words or self.banned_words is None:
             mods_cog = self.get_mods_cog()
-            if mods_cog and hasattr(mods_cog, 'banned_words'):
+            if mods_cog and hasattr(mods_cog, 'banned_words') and mods_cog.banned_words is not None and isinstance(mods_cog.banned_words, dict):
                 self.banned_words = mods_cog.banned_words
-            elif not self.banned_words:
+            else:
                 self._load_from_files()
+                # S'assurer que c'est un dict après chargement
+                if not isinstance(self.banned_words, dict):
+                    self.banned_words = {}
     
     def create_fake_ctx(self, interaction, use_edit_response=False):
         """Crée un FakeCtx pour utiliser les méthodes du cog original avec les commandes slash"""
@@ -361,19 +411,28 @@ class Mods_slash(commands.Cog):
             await interaction.response.send_message("Vous n'avez pas la permission de gérer les messages.", ephemeral=True)
             return
         
+        # Vérifier qu'on est dans un serveur (pas en MP)
+        if not isinstance(interaction.channel, discord.TextChannel):
+            await interaction.response.send_message("Cette commande ne peut pas être utilisée en MP.", ephemeral=True)
+            return
+        
         # S'assurer que les warns sont chargés
         self.ensure_warns_loaded()
         
         # Vérifier qu'on a bien un système de warns disponible
         if not hasattr(self, 'warns') or self.warns is None:
-            await interaction.response.send_message("Le système de warns n'est pas disponible. Veuillez réessayer dans quelques secondes.", ephemeral=True)
-            return
+            # Initialiser si None
+            self.warns = {}
         
         # Synchroniser avec le cog si disponible
         mods_cog = self.get_mods_cog()
         if mods_cog and hasattr(mods_cog, 'warns'):
             self.mods_cog = mods_cog
-            self.warns = mods_cog.warns
+            # S'assurer que warns est un dictionnaire
+            if mods_cog.warns is not None and isinstance(mods_cog.warns, dict):
+                self.warns = mods_cog.warns
+            else:
+                self.warns = {}
         if mods_cog and hasattr(mods_cog, 'blocked_user_id'):
             self.blocked_user_id = mods_cog.blocked_user_id
         
@@ -403,7 +462,11 @@ class Mods_slash(commands.Cog):
         guild_id = str(interaction.guild.id)
         member_id = str(member.id)
         
-        # Initialiser les structures de données si nécessaire
+        # S'assurer que warns est un dictionnaire
+        if not isinstance(self.warns, dict):
+            self.warns = {}
+        
+        # Initialiser les structures de données si nécessaire (par serveur)
         if guild_id not in self.warns:
             self.warns[guild_id] = {}
         if member_id not in self.warns[guild_id]:
@@ -473,20 +536,29 @@ class Mods_slash(commands.Cog):
     @app_commands.describe(member="Le membre dont les warns doivent être reset")
     @app_commands.default_permissions(manage_messages=True)
     async def resetwarn(self, interaction: discord.Interaction, member: discord.Member):
-        """Reset les warns d'un membre"""
+        """Reset les warns d'un membre (par serveur)"""
+        # Vérifier qu'on est dans un serveur (pas en MP)
+        if not isinstance(interaction.channel, discord.TextChannel):
+            await interaction.response.send_message("Cette commande ne peut pas être utilisée en MP.", ephemeral=True)
+            return
+        
         # S'assurer que les warns sont chargés
         self.ensure_warns_loaded()
         
+        # Initialiser si None
         if not hasattr(self, 'warns') or self.warns is None:
-            await interaction.response.send_message("Le système de warns n'est pas disponible. Veuillez réessayer dans quelques secondes.", ephemeral=True)
-            return
+            self.warns = {}
+        
+        # S'assurer que warns est un dictionnaire
+        if not isinstance(self.warns, dict):
+            self.warns = {}
         
         mods_cog = self.get_mods_cog()
         if mods_cog:
             await interaction.response.defer(ephemeral=False)
             # Synchroniser avec le cog original
             self.mods_cog = mods_cog
-            if hasattr(mods_cog, 'warns'):
+            if hasattr(mods_cog, 'warns') and mods_cog.warns is not None and isinstance(mods_cog.warns, dict):
                 self.warns = mods_cog.warns
             # Utiliser la logique du cog original
             fake_ctx = self.create_fake_ctx(interaction, use_edit_response=True)
@@ -496,20 +568,29 @@ class Mods_slash(commands.Cog):
 
     @app_commands.command(name="warnboard", description="Affiche le leaderboard des warns")
     async def warnboard(self, interaction: discord.Interaction):
-        """Affiche le leaderboard des warns"""
+        """Affiche le leaderboard des warns (par serveur)"""
+        # Vérifier qu'on est dans un serveur (pas en MP)
+        if not isinstance(interaction.channel, discord.TextChannel):
+            await interaction.response.send_message("Cette commande ne peut pas être utilisée en MP.", ephemeral=True)
+            return
+        
         # S'assurer que les warns sont chargés
         self.ensure_warns_loaded()
         
+        # Initialiser si None
         if not hasattr(self, 'warns') or self.warns is None:
-            await interaction.response.send_message("Le système de warns n'est pas disponible. Veuillez réessayer dans quelques secondes.", ephemeral=True)
-            return
+            self.warns = {}
+        
+        # S'assurer que warns est un dictionnaire
+        if not isinstance(self.warns, dict):
+            self.warns = {}
         
         mods_cog = self.get_mods_cog()
         if mods_cog:
             await interaction.response.defer(ephemeral=False)
             # Synchroniser avec le cog original
             self.mods_cog = mods_cog
-            if hasattr(mods_cog, 'warns'):
+            if hasattr(mods_cog, 'warns') and mods_cog.warns is not None and isinstance(mods_cog.warns, dict):
                 self.warns = mods_cog.warns
             fake_ctx = self.create_fake_ctx(interaction, use_edit_response=True)
             await mods_cog.warnboard(fake_ctx)
@@ -607,6 +688,11 @@ class Mods_slash(commands.Cog):
     @app_commands.default_permissions(manage_messages=True)
     async def banword(self, interaction: discord.Interaction, word: str):
         """Ajoute un mot à la liste des mots bannis"""
+        # Vérifier qu'on est dans un serveur (pas en MP)
+        if not isinstance(interaction.channel, discord.TextChannel):
+            await interaction.response.send_message("Cette commande ne peut pas être utilisée en MP.", ephemeral=True)
+            return
+        
         # S'assurer que les mots bannis sont chargés
         self.ensure_banned_words_loaded()
         
@@ -631,6 +717,11 @@ class Mods_slash(commands.Cog):
     @app_commands.default_permissions(manage_messages=True)
     async def unbanword(self, interaction: discord.Interaction, word: str):
         """Retire un mot de la liste des mots bannis"""
+        # Vérifier qu'on est dans un serveur (pas en MP)
+        if not isinstance(interaction.channel, discord.TextChannel):
+            await interaction.response.send_message("Cette commande ne peut pas être utilisée en MP.", ephemeral=True)
+            return
+        
         # S'assurer que les mots bannis sont chargés
         self.ensure_banned_words_loaded()
         
@@ -654,6 +745,11 @@ class Mods_slash(commands.Cog):
     @app_commands.default_permissions(manage_messages=True)
     async def listbannedwords(self, interaction: discord.Interaction):
         """Affiche la liste des mots bannis"""
+        # Vérifier qu'on est dans un serveur (pas en MP)
+        if not isinstance(interaction.channel, discord.TextChannel):
+            await interaction.response.send_message("Cette commande ne peut pas être utilisée en MP.", ephemeral=True)
+            return
+        
         # S'assurer que les mots bannis sont chargés
         self.ensure_banned_words_loaded()
         

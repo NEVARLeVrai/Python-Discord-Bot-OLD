@@ -27,22 +27,42 @@ class Mods(commands.Cog):
     async def on_ready(self):
             # Utiliser le chemin centralisé depuis main.py
         warns_path = self.client.paths['warns_json']
-        # Chargement du fichier JSON qui stocke les warns
+        # Chargement du fichier JSON qui stocke les warns (organisés par serveur)
         if os.path.exists(warns_path):
             with open(warns_path, 'r') as f:
-                self.warns = json.load(f)
+                data = json.load(f)
+                # Vérifier que c'est bien un dictionnaire (format par serveur)
+                if isinstance(data, dict):
+                    self.warns = data
+                else:
+                    # Si c'est un autre format (liste ou autre), initialiser un dictionnaire vide
+                    # L'ancien format n'était pas organisé par serveur, on le supprime
+                    self.warns = {}
+                    self.save_warns()
         else:
             self.warns = {}
             with open(warns_path, 'w') as f:
                 json.dump(self.warns, f)
         
-        # Chargement des mots bannis
+        # Chargement des mots bannis (organisés par serveur)
         banned_words_path = self.client.paths['banned_words_json']
         if os.path.exists(banned_words_path):
             with open(banned_words_path, 'r', encoding='utf-8') as f:
-                self.banned_words = json.load(f)
+                data = json.load(f)
+                # Migration : si c'est une liste (ancien format), convertir en dictionnaire vide
+                if isinstance(data, list):
+                    # L'ancien format était une liste globale, on la supprime
+                    self.banned_words = {}
+                    self.save_banned_words()
+                elif isinstance(data, dict):
+                    # Nouveau format : dictionnaire par guild_id
+                    self.banned_words = data
+                else:
+                    # Format inattendu, initialiser un dictionnaire vide
+                    self.banned_words = {}
+                    self.save_banned_words()
         else:
-            self.banned_words = []
+            self.banned_words = {}
             with open(banned_words_path, 'w', encoding='utf-8') as f:
                 json.dump(self.banned_words, f, ensure_ascii=False, indent=2)
         # Note: La tâche check_timeout_end est maintenant dans cogs_auto_commands/Mods_auto.py
@@ -114,7 +134,24 @@ class Mods(commands.Cog):
     @commands.command()
     @commands.has_permissions(manage_messages=True)
     async def warn(self, ctx, member: discord.Member, *, args=None):
+        """Avertit un membre (par serveur)"""
         await ctx.message.delete()
+        
+        # Vérifier si on est dans un serveur (pas en MP)
+        if not isinstance(ctx.channel, discord.TextChannel):
+            embed = discord.Embed(title="Erreur", description="Cette commande ne peut pas être utilisée en MP.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=get_current_version(self.client))
+            await ctx.send(embed=embed, delete_after=10)
+            return
+        
+        # Initialiser warns si c'est None
+        if self.warns is None:
+            self.warns = {}
+        
+        # S'assurer que warns est un dictionnaire (format par serveur)
+        if not isinstance(self.warns, dict):
+            self.warns = {}
         
         # Vérifier si l'auteur essaie de se warn lui-même
         if ctx.author.id == member.id:
@@ -323,7 +360,24 @@ class Mods(commands.Cog):
     @commands.command(aliases=["warnreset"])
     @commands.has_permissions(manage_messages=True)
     async def resetwarn(self, ctx, member: discord.Member):
+        """Réinitialise les warns d'un membre (par serveur)"""
         await ctx.message.delete()
+        
+        # Ignorer si c'est un DM
+        if not isinstance(ctx.channel, discord.TextChannel):
+            embed = discord.Embed(title="Erreur", description="Cette commande ne peut pas être utilisée en MP.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=get_current_version(self.client))
+            await ctx.send(embed=embed, delete_after=10)
+            return
+        
+        # Initialiser warns si c'est None
+        if self.warns is None:
+            self.warns = {}
+        
+        # S'assurer que warns est un dictionnaire (format par serveur)
+        if not isinstance(self.warns, dict):
+            self.warns = {}
         
         member_id = str(member.id)
         guild_id = str(ctx.guild.id)
@@ -377,13 +431,30 @@ class Mods(commands.Cog):
     
     @commands.command(aliases=["warnleaderboard", "warnlb"])
     async def warnboard(self, ctx):
+        """Affiche le leaderboard des warns (par serveur)"""
         await ctx.message.delete()
+        
+        # Ignorer si c'est un DM
+        if not isinstance(ctx.channel, discord.TextChannel):
+            embed = discord.Embed(title="Erreur", description="Cette commande ne peut pas être utilisée en MP.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=get_current_version(self.client))
+            await ctx.send(embed=embed, delete_after=10)
+            return
+        
+        # Initialiser warns si c'est None
+        if self.warns is None:
+            self.warns = {}
+        
+        # S'assurer que warns est un dictionnaire (format par serveur)
+        if not isinstance(self.warns, dict):
+            self.warns = {}
         
         guild_id = str(ctx.guild.id)
         
         # Vérifier si le serveur a des warns
         if guild_id not in self.warns or not self.warns[guild_id]:
-            embed = discord.Embed(title="Leaderboard des Warns", description="Aucun warn enregistré sur ce serveur.", color=discord.Color.orange())
+            embed = discord.Embed(title="Leaderboard des Warns", description=f"Aucun warn enregistré sur **{ctx.guild.name}**.", color=discord.Color.orange())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
             embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed)
@@ -411,7 +482,7 @@ class Mods(commands.Cog):
         top_warns = warn_list[:10]
         
         # Créer l'embed
-        embed = discord.Embed(title="🏆 Leaderboard des Warns", description="Top 10 des utilisateurs avec le plus de warns", color=discord.Color.orange())
+        embed = discord.Embed(title="🏆 Leaderboard des Warns", description=f"Top 10 des utilisateurs avec le plus de warns sur **{ctx.guild.name}**", color=discord.Color.orange())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
         embed.set_footer(text=get_current_version(self.client))
         
@@ -682,8 +753,16 @@ class Mods(commands.Cog):
     @commands.command(aliases=["addbannedword"])
     @commands.has_permissions(manage_messages=True)
     async def banword(self, ctx, *, word: str):
-        """Ajoute un mot à la liste des mots bannis"""
+        """Ajoute un mot à la liste des mots bannis (par serveur)"""
         await ctx.message.delete()
+        
+        # Ignorer si c'est un DM
+        if not isinstance(ctx.channel, discord.TextChannel):
+            embed = discord.Embed(title="Erreur", description="Cette commande ne peut pas être utilisée en MP.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=get_current_version(self.client))
+            await ctx.send(embed=embed, delete_after=10)
+            return
         
         # Normaliser le mot (minuscules)
         word_lower = word.lower().strip()
@@ -695,18 +774,34 @@ class Mods(commands.Cog):
             await ctx.send(embed=embed, delete_after=10)
             return
         
-        if word_lower in self.banned_words:
-            embed = discord.Embed(title="Mot déjà banni", description=f"Le mot `{word}` est déjà dans la liste des mots bannis.", color=discord.Color.orange())
+        # Initialiser banned_words si c'est None
+        if self.banned_words is None:
+            self.banned_words = {}
+        
+        # S'assurer que banned_words est un dictionnaire (format par serveur)
+        if not isinstance(self.banned_words, dict):
+            self.banned_words = {}
+        
+        # Récupérer le guild_id
+        guild_id = str(ctx.guild.id)
+        
+        # Initialiser la liste pour ce serveur si elle n'existe pas
+        if guild_id not in self.banned_words:
+            self.banned_words[guild_id] = []
+        
+        # Vérifier si le mot est déjà banni sur ce serveur
+        if word_lower in self.banned_words[guild_id]:
+            embed = discord.Embed(title="Mot déjà banni", description=f"Le mot `{word}` est déjà dans la liste des mots bannis de ce serveur.", color=discord.Color.orange())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
             embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=10)
             return
         
-        # Ajouter le mot à la liste
-        self.banned_words.append(word_lower)
+        # Ajouter le mot à la liste du serveur
+        self.banned_words[guild_id].append(word_lower)
         self.save_banned_words()
         
-        embed = discord.Embed(title="Mot banni", description=f"Le mot `{word}` a été ajouté à la liste des mots bannis.", color=discord.Color.green())
+        embed = discord.Embed(title="Mot banni", description=f"Le mot `{word}` a été ajouté à la liste des mots bannis de ce serveur.", color=discord.Color.green())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
         embed.set_footer(text=get_current_version(self.client))
         await ctx.send(embed=embed, delete_after=10)
@@ -714,8 +809,16 @@ class Mods(commands.Cog):
     @commands.command(aliases=["removebannedword"])
     @commands.has_permissions(manage_messages=True)
     async def unbanword(self, ctx, *, word: str):
-        """Retire un mot de la liste des mots bannis"""
+        """Retire un mot de la liste des mots bannis (par serveur)"""
         await ctx.message.delete()
+        
+        # Ignorer si c'est un DM
+        if not isinstance(ctx.channel, discord.TextChannel):
+            embed = discord.Embed(title="Erreur", description="Cette commande ne peut pas être utilisée en MP.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=get_current_version(self.client))
+            await ctx.send(embed=embed, delete_after=10)
+            return
         
         # Normaliser le mot (minuscules)
         word_lower = word.lower().strip()
@@ -727,18 +830,30 @@ class Mods(commands.Cog):
             await ctx.send(embed=embed, delete_after=10)
             return
         
-        if word_lower not in self.banned_words:
-            embed = discord.Embed(title="Mot non trouvé", description=f"Le mot `{word}` n'est pas dans la liste des mots bannis.", color=discord.Color.orange())
+        # Initialiser banned_words si c'est None
+        if self.banned_words is None:
+            self.banned_words = {}
+        
+        # S'assurer que banned_words est un dictionnaire (format par serveur)
+        if not isinstance(self.banned_words, dict):
+            self.banned_words = {}
+        
+        # Récupérer le guild_id
+        guild_id = str(ctx.guild.id)
+        
+        # Vérifier si le serveur a des mots bannis
+        if guild_id not in self.banned_words or word_lower not in self.banned_words[guild_id]:
+            embed = discord.Embed(title="Mot non trouvé", description=f"Le mot `{word}` n'est pas dans la liste des mots bannis de ce serveur.", color=discord.Color.orange())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
             embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=10)
             return
         
-        # Retirer le mot de la liste
-        self.banned_words.remove(word_lower)
+        # Retirer le mot de la liste du serveur
+        self.banned_words[guild_id].remove(word_lower)
         self.save_banned_words()
         
-        embed = discord.Embed(title="Mot retiré", description=f"Le mot `{word}` a été retiré de la liste des mots bannis.", color=discord.Color.green())
+        embed = discord.Embed(title="Mot retiré", description=f"Le mot `{word}` a été retiré de la liste des mots bannis de ce serveur.", color=discord.Color.green())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
         embed.set_footer(text=get_current_version(self.client))
         await ctx.send(embed=embed, delete_after=10)
@@ -746,22 +861,42 @@ class Mods(commands.Cog):
     @commands.command(aliases=["bannedwords", "bwlist"])
     @commands.has_permissions(manage_messages=True)
     async def listbannedwords(self, ctx):
-        """Affiche la liste des mots bannis"""
+        """Affiche la liste des mots bannis (par serveur)"""
         await ctx.message.delete()
         
-        if not self.banned_words:
-            embed = discord.Embed(title="Liste des mots bannis", description="Aucun mot banni pour le moment.", color=discord.Color.blue())
+        # Ignorer si c'est un DM
+        if not isinstance(ctx.channel, discord.TextChannel):
+            embed = discord.Embed(title="Erreur", description="Cette commande ne peut pas être utilisée en MP.", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=get_current_version(self.client))
+            await ctx.send(embed=embed, delete_after=10)
+            return
+        
+        # Initialiser banned_words si c'est None
+        if self.banned_words is None:
+            self.banned_words = {}
+        
+        # S'assurer que banned_words est un dictionnaire (format par serveur)
+        if not isinstance(self.banned_words, dict):
+            self.banned_words = {}
+        
+        # Récupérer le guild_id
+        guild_id = str(ctx.guild.id)
+        
+        # Récupérer la liste des mots bannis pour ce serveur
+        if guild_id not in self.banned_words or not self.banned_words[guild_id]:
+            embed = discord.Embed(title="Liste des mots bannis", description="Aucun mot banni pour le moment sur ce serveur.", color=discord.Color.blue())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
             embed.set_footer(text=get_current_version(self.client))
             await ctx.send(embed=embed, delete_after=15)
             return
         
         # Diviser la liste en chunks de 20 mots pour éviter les messages trop longs
-        words_list = self.banned_words
+        words_list = self.banned_words[guild_id]
         total_words = len(words_list)
         
         # Créer un embed avec la liste
-        embed = discord.Embed(title=f"Liste des mots bannis ({total_words})", description="", color=discord.Color.blue())
+        embed = discord.Embed(title=f"Liste des mots bannis ({total_words})", description=f"Mots bannis sur **{ctx.guild.name}**", color=discord.Color.blue())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
         embed.set_footer(text=get_current_version(self.client))
         

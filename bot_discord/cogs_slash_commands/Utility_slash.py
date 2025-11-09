@@ -337,25 +337,7 @@ class Utility_slash(commands.Cog):
             embed.set_author(name=f"Demandé par {interaction.user.name}", icon_url=interaction.user.avatar)
             embed.set_footer(text=get_current_version(self.client))
             await interaction.followup.send(embed=embed, ephemeral=True)
-
-    @app_commands.command(name="sayuser", description="Envoie un message à un utilisateur")
-    @app_commands.describe(user="L'utilisateur", message="Le message à envoyer")
-    async def say_user(self, interaction: discord.Interaction, user: discord.User, message: str):
-        """Envoie un message à un utilisateur"""
-        await interaction.response.defer(ephemeral=False)
-        
-        try:
-            await user.send(message)
-            embed = discord.Embed(title="Message Envoyé!", description=f"Message envoyé à {user.mention}", color=discord.Color.green())
-            embed.set_author(name=f"Demandé par {interaction.user.name}", icon_url=interaction.user.avatar)
-            embed.set_footer(text=get_current_version(self.client))
-            await interaction.followup.send(embed=embed, ephemeral=False)
-        except Exception as e:
-            embed = discord.Embed(title="Erreur", description=f"Impossible d'envoyer le message: {str(e)}", color=discord.Color.red())
-            embed.set_author(name=f"Demandé par {interaction.user.name}", icon_url=interaction.user.avatar)
-            embed.set_footer(text=get_current_version(self.client))
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
+            
     @app_commands.command(name="deldms", description="Supprime tous les DMs du bot")
     @app_commands.default_permissions(administrator=True)
     async def delmp(self, interaction: discord.Interaction):

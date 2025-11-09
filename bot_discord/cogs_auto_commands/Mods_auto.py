@@ -20,7 +20,11 @@ class Mods_auto(commands.Cog):
     async def check_timeout_end(self):
         """Vérifie périodiquement si des timeouts sont terminés et remet les rôles"""
         mods_cog = self.get_mods_cog()
-        if not mods_cog or not hasattr(mods_cog, 'warns') or not mods_cog.warns:
+        if not mods_cog or not hasattr(mods_cog, 'warns') or mods_cog.warns is None:
+            return
+        
+        # S'assurer que warns est un dictionnaire (organisé par serveur)
+        if not isinstance(mods_cog.warns, dict):
             return
         
         for guild_id_str, guild_data in mods_cog.warns.items():
@@ -85,7 +89,7 @@ class Mods_auto(commands.Cog):
         if not mods_cog:
             return
         
-        # Vérifier si les warns sont chargés (un dict vide {} est valide, on peut ajouter des warns)
+        # Vérifier si les warns sont chargés (organisés par serveur)
         if not hasattr(mods_cog, 'warns'):
             return
         
@@ -93,10 +97,14 @@ class Mods_auto(commands.Cog):
         if mods_cog.warns is None:
             mods_cog.warns = {}
         
+        # S'assurer que warns est un dictionnaire (format par serveur)
+        if not isinstance(mods_cog.warns, dict):
+            mods_cog.warns = {}
+        
         member_id = str(member.id)
         guild_id = str(guild.id)
         
-        # Initialiser la structure si elle n'existe pas
+        # Initialiser la structure si elle n'existe pas (par serveur)
         if guild_id not in mods_cog.warns:
             mods_cog.warns[guild_id] = {}
         if member_id not in mods_cog.warns[guild_id]:
@@ -270,15 +278,25 @@ class Mods_auto(commands.Cog):
         
         # Initialiser banned_words si c'est None
         if mods_cog.banned_words is None:
-            mods_cog.banned_words = []
+            mods_cog.banned_words = {}
         
-        # Si la liste est vide, pas de mots bannis à vérifier
-        if not mods_cog.banned_words:
+        # S'assurer que banned_words est un dictionnaire (format par serveur)
+        if not isinstance(mods_cog.banned_words, dict):
+            mods_cog.banned_words = {}
+        
+        # Récupérer le guild_id
+        guild_id = str(message.guild.id)
+        
+        # Vérifier si le serveur a des mots bannis
+        if guild_id not in mods_cog.banned_words or not mods_cog.banned_words[guild_id]:
             return
+        
+        # Récupérer la liste des mots bannis pour ce serveur
+        banned_words_list = mods_cog.banned_words[guild_id]
         
         # Vérifier si le message contient un mot banni
         message_content_lower = message.content.lower()
-        for banned_word in mods_cog.banned_words:
+        for banned_word in banned_words_list:
             if banned_word.lower() in message_content_lower:
                 try:
                     # Supprimer le message

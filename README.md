@@ -51,11 +51,16 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 - **`=unbanword [word]`** – Remove a banned word  
 - **`=listbannedwords`** – Display all banned words  
 
+**Per-Server System:**
+- **Warns and banned words are server-specific** – Each server has its own independent list of banned words and warns
+- **No cross-server data** – Warns and banned words from one server do not affect other servers
+
 **Automatic Features:**
-- **Banned word detection** – Automatically detects and deletes messages containing banned words
+- **Banned word detection** – Automatically detects and deletes messages containing banned words (per server)
 - **Automatic warn** – Users receive a warn via DM when using a banned word (reason: "mot banni utilisé : [word]")
 - **Automatic sanctions** – 5 warns → 10 min timeout · 10 warns → 10 min timeout · 15 warns → kick · 20 warns → ban
 - **Role protection** – Protected roles are temporarily removed during sanctions and restored after timeout
+- **Sanctions are server-specific** – Warns are tracked separately for each server
 
 ---
 
@@ -189,9 +194,9 @@ bot_discord/
 │   ├── Utility_auto.py        # Conversion automatique des liens sociaux
 │   └── Help_auto.py           # Forwarding automatique des MPs
 ├── json/
-│   ├── warns.json
+│   ├── warns.json             # Warns organisés par serveur: {guild_id: {user_id: {...}}}
 │   ├── levels.json
-│   ├── banned_words.json
+│   ├── banned_words.json      # Mots bannis organisés par serveur: {guild_id: [words]}
 │   └── update_logs.json
 ├── img/
 │   ├── 8ball.png
@@ -261,6 +266,7 @@ Example :
 - Error handling is centralized in `ErrorHandler.py`  
 - Banned words trigger automatic warnings via DM  
 - Protected roles are automatically managed during sanctions  
+- **Warns and banned words are server-specific** – Each server has independent moderation data
 
 ---
 
