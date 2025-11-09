@@ -56,22 +56,83 @@ class utility(commands.Cog):
         await ctx.message.delete()
         vc = None
         try:
-            if ctx.author.voice:
-                vc = await ctx.author.voice.channel.connect()
-            else:
-                await ctx.send("Vous devez être dans un salon vocal pour utiliser cette commande.", delete_after=5)
+            if not ctx.author.voice:
+                embed = discord.Embed(title="TTS - Erreur", description="Vous devez être dans un salon vocal pour utiliser cette commande.", color=discord.Color.red())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=5)
                 return
 
-            await ctx.send(f"**TTS Play**\nVolume: **{vol}**\nLangue: **{lang}**\nDit: **{text}**", delete_after=25)
+            channel = ctx.author.voice.channel
+            # Vérifier si le bot est déjà connecté dans ce serveur
+            voice = discord.utils.get(self.client.voice_clients, guild=ctx.guild)
+            
+            if voice and voice.is_connected():
+                # Si une lecture est en cours, l'arrêter pour TTS
+                if voice.is_playing():
+                    voice.stop()
+                    # Si YouTube jouait, vider sa queue pour éviter confusion
+                    youtube_cog = self.client.get_cog('Youtube')
+                    if youtube_cog and hasattr(youtube_cog, 'queue'):
+                        youtube_cog.queue.clear()
+                    await asyncio.sleep(0.5)  # Attendre que la lecture s'arrête
+                
+                # Déjà connecté, vérifier si c'est le bon canal
+                if voice.channel == channel:
+                    vc = voice
+                else:
+                    # Déplacer vers le nouveau canal
+                    try:
+                        await voice.move_to(channel)
+                        vc = voice
+                    except discord.errors.ClientException as e:
+                        embed = discord.Embed(title="TTS - Erreur", description=f"Conflit de connexion vocale. Le bot est peut-être utilisé par une autre fonctionnalité.", color=discord.Color.red())
+                        embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                        embed.set_footer(text=Help.version1)
+                        await ctx.send(embed=embed, delete_after=5)
+                        return
+                    except Exception as e:
+                        embed = discord.Embed(title="TTS - Erreur", description=f"Impossible de se déplacer vers le canal vocal: {str(e)}", color=discord.Color.red())
+                        embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                        embed.set_footer(text=Help.version1)
+                        await ctx.send(embed=embed, delete_after=5)
+                        return
+            else:
+                # Pas encore connecté, se connecter
+                try:
+                    vc = await channel.connect()
+                except discord.errors.ClientException as e:
+                    embed = discord.Embed(title="TTS - Erreur", description=f"Conflit de connexion vocale. Le bot est peut-être utilisé par une autre fonctionnalité.", color=discord.Color.red())
+                    embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                    embed.set_footer(text=Help.version1)
+                    await ctx.send(embed=embed, delete_after=5)
+                    return
+                except Exception as e:
+                    embed = discord.Embed(title="TTS - Erreur", description=f"Impossible de se connecter au canal vocal: {str(e)}", color=discord.Color.red())
+                    embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                    embed.set_footer(text=Help.version1)
+                    await ctx.send(embed=embed, delete_after=5)
+                    return
+
+            embed = discord.Embed(title="TTS Play", description=f"Volume: **{vol}**\nLangue: **{lang}**\nDit: **{text}**", color=discord.Color.green())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=25)
             await self.send_tts(vc, lang, vol, text)
 
         except Exception as e:
             traceback_str = ''.join(traceback.format_exception(type(e), e, e.__traceback__))
-            await ctx.send(f"Une erreur s'est produite lors de la lecture TTS:\n\n```\n{traceback_str}\n```", delete_after=10)
+            embed = discord.Embed(title="TTS - Erreur", description=f"Une erreur s'est produite lors de la lecture TTS:\n\n```\n{str(e)}\n```", color=discord.Color.red())
+            embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+            embed.set_footer(text=Help.version1)
+            await ctx.send(embed=embed, delete_after=10)
+            print(f"Erreur TTS: {traceback_str}")
         finally:
-            if vc:
-                await vc.disconnect()
-                await ctx.send("Déconnecté avec succès!", delete_after=5)
+            # Ne pas déconnecter automatiquement, laisser le bot connecté pour les autres fonctionnalités
+            # Si vous voulez déconnecter après TTS, décommentez les lignes suivantes:
+            # if vc:
+            #     await vc.disconnect()
+            pass
 
     @commands.command(aliases=["repeat"])
     async def say(self, ctx, destination: typing.Union[discord.TextChannel, discord.Member, str], *, message=None):

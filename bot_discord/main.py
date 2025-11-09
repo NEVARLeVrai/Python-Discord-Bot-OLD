@@ -32,7 +32,8 @@ PATHS = {
     'info_png': "./img/info.png",
     'version_jpg': "./img/version.jpg",
     'sounds_dir': "./Sounds",
-    'cogs_dir': "./cogs"
+    'cogs_dir': "./cogs",
+    'cogs_slash_dir': "./cogs_slash_commands"
 }
 
 # Configuration centralisée
@@ -81,7 +82,7 @@ async def on_ready():
 
 
 async def load():
-    # Utiliser le chemin centralisé depuis main.py
+    # Charger les cogs avec commandes prefix (=)
     cogs_dir = PATHS['cogs_dir']
     for filename in os.listdir(cogs_dir):
         if filename.endswith(".py"):
@@ -90,6 +91,17 @@ async def load():
                 print(f"Chargé: cogs.{filename[:-3]}")
             except Exception as e:
                 print(f"Erreur lors du chargement de cogs.{filename[:-3]}: {e}")
+    
+    # Charger les cogs avec commandes slash (/)
+    cogs_slash_dir = PATHS['cogs_slash_dir']
+    if os.path.exists(cogs_slash_dir):
+        for filename in os.listdir(cogs_slash_dir):
+            if filename.endswith(".py"):
+                try:
+                    await client.load_extension(f"cogs_slash_commands.{filename[:-3]}")
+                    print(f"Chargé: cogs_slash_commands.{filename[:-3]}")
+                except Exception as e:
+                    print(f"Erreur lors du chargement de cogs_slash_commands.{filename[:-3]}: {e}")
 
 
 @tasks.loop(seconds=7)

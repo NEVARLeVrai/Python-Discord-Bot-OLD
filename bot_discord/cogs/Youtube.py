@@ -42,25 +42,75 @@ class Youtube(commands.Cog):
         ydl_options = {'format': 'bestaudio', 'noplaylist': 'True'}
 
         voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
+        channel = ctx.author.voice.channel
 
         if not voice or not voice.is_connected():
-            channel = ctx.author.voice.channel
-            await channel.connect()
-
-        voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
+            # Pas connecté, se connecter
+            try:
+                voice = await channel.connect()
+            except discord.errors.ClientException as e:
+                embed = discord.Embed(title="YouTube - Erreur", description=f"Conflit de connexion vocale. Le bot est peut-être utilisé par une autre fonctionnalité.", color=discord.Color.red())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+                return
+            except Exception as e:
+                embed = discord.Embed(title="YouTube - Erreur", description=f"Impossible de se connecter au canal vocal: {str(e)}", color=discord.Color.red())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+                return
+        else:
+            # Déjà connecté, vérifier si c'est le bon canal
+            if voice.channel != channel:
+                try:
+                    # Déplacer vers le nouveau canal
+                    await voice.move_to(channel)
+                except discord.errors.ClientException as e:
+                    embed = discord.Embed(title="YouTube - Erreur", description=f"Conflit de connexion vocale. Le bot est peut-être utilisé par une autre fonctionnalité.", color=discord.Color.red())
+                    embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                    embed.set_footer(text=Help.version1)
+                    await ctx.send(embed=embed, delete_after=10)
+                    return
+                except Exception as e:
+                    embed = discord.Embed(title="YouTube - Erreur", description=f"Impossible de se déplacer vers le canal vocal: {str(e)}", color=discord.Color.red())
+                    embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                    embed.set_footer(text=Help.version1)
+                    await ctx.send(embed=embed, delete_after=10)
+                    return
 
         try:
             with YoutubeDL(ydl_options) as ydl:
                 info = ydl.extract_info(url, download=False)
             audio_url = info['url']
 
-            if voice and (voice.is_playing() or voice.is_paused()):
+            # Vérifier si c'est vraiment YouTube qui joue
+            # Si YT est en pause OU si YT joue ET qu'il y a une queue (c'est YT qui gère), ajouter à la file
+            # Sinon (Soundboard/TTS joue ou rien ne joue), arrêter et jouer directement
+            if voice and voice.is_paused():
+                # YT est en pause, ajouter à la file
+                self.queue.append({'title': info['title'], 'url': audio_url})
+                embed = discord.Embed(title="YouTube - File d'attente", description=f'La vidéo YouTube **"{info["title"]}"** a été ajoutée à la file d\'attente.', color=discord.Color.blue())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+            elif voice and voice.is_playing() and len(self.queue) > 0:
+                # YT joue et il y a déjà une queue YT, ajouter à la file
                 self.queue.append({'title': info['title'], 'url': audio_url})
                 embed = discord.Embed(title="YouTube - File d'attente", description=f'La vidéo YouTube **"{info["title"]}"** a été ajoutée à la file d\'attente.', color=discord.Color.blue())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
                 embed.set_footer(text=Help.version1)
                 await ctx.send(embed=embed, delete_after=10)
             else:
+                # Soit rien ne joue, soit Soundboard/TTS joue (queue vide = pas YT)
+                # Arrêter toute lecture en cours et jouer YT directement
+                if voice and voice.is_playing():
+                    voice.stop()
+                    # Vider la queue YT si Soundboard/TTS jouait (pour éviter confusion)
+                    self.queue.clear()
+                    await asyncio.sleep(0.5)  # Attendre que la lecture s'arrête
+                
+                # Jouer la vidéo directement
                 voice.play(discord.FFmpegPCMAudio(audio_url, **self.ffmpeg_options), after=lambda e: self.check_queue(ctx))
                 voice.is_playing()
                 embed = discord.Embed(title="YouTube - Lecture", description=f'Le bot est en train de jouer : **{info["title"]}**', color=discord.Color.green())
@@ -223,11 +273,42 @@ class Youtube(commands.Cog):
         }
 
         voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
+        channel = ctx.author.voice.channel
 
         # Vérifier si le bot n'est pas dans un canal vocal
         if not voice or not voice.is_connected():
-            channel = ctx.author.voice.channel
-            await channel.connect()
+            try:
+                voice = await channel.connect()
+            except discord.errors.ClientException as e:
+                embed = discord.Embed(title="YouTube - Erreur", description=f"Conflit de connexion vocale. Le bot est peut-être utilisé par une autre fonctionnalité.", color=discord.Color.red())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+                return
+            except Exception as e:
+                embed = discord.Embed(title="YouTube - Erreur", description=f"Impossible de se connecter au canal vocal: {str(e)}", color=discord.Color.red())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+                return
+        else:
+            # Déjà connecté, vérifier si c'est le bon canal
+            if voice.channel != channel:
+                try:
+                    # Déplacer vers le nouveau canal
+                    await voice.move_to(channel)
+                except discord.errors.ClientException as e:
+                    embed = discord.Embed(title="YouTube - Erreur", description=f"Conflit de connexion vocale. Le bot est peut-être utilisé par une autre fonctionnalité.", color=discord.Color.red())
+                    embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                    embed.set_footer(text=Help.version1)
+                    await ctx.send(embed=embed, delete_after=10)
+                    return
+                except Exception as e:
+                    embed = discord.Embed(title="YouTube - Erreur", description=f"Impossible de se déplacer vers le canal vocal: {str(e)}", color=discord.Color.red())
+                    embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                    embed.set_footer(text=Help.version1)
+                    await ctx.send(embed=embed, delete_after=10)
+                    return
 
         # Afficher un embed "Recherche en cours..."
         loading_embed = discord.Embed(title="YouTube - Recherche en cours", description=f"Recherche de **'{query}'** en cours...", color=discord.Color.yellow())
@@ -316,15 +397,32 @@ class Youtube(commands.Cog):
 
             await loading_msg.delete()
 
-            # Vérifier si le bot n'est pas en train de jouer ou en pause
+            # Vérifier si c'est vraiment YouTube qui joue
             voice = discord.utils.get(self.bot.voice_clients, guild=ctx.guild)
-            if voice and (voice.is_playing() or voice.is_paused()):
+            
+            if voice and voice.is_paused():
+                # YT est en pause, ajouter à la file
+                self.queue.append({'title': video_title, 'url': audio_url})
+                embed = discord.Embed(title="YouTube - File d'attente", description=f'La vidéo YouTube **"{video_title}"** a été ajoutée à la file d\'attente.', color=discord.Color.blue())
+                embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
+                embed.set_footer(text=Help.version1)
+                await ctx.send(embed=embed, delete_after=10)
+            elif voice and voice.is_playing() and len(self.queue) > 0:
+                # YT joue et il y a déjà une queue YT, ajouter à la file
                 self.queue.append({'title': video_title, 'url': audio_url})
                 embed = discord.Embed(title="YouTube - File d'attente", description=f'La vidéo YouTube **"{video_title}"** a été ajoutée à la file d\'attente.', color=discord.Color.blue())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
                 embed.set_footer(text=Help.version1)
                 await ctx.send(embed=embed, delete_after=10)
             else:
+                # Soit rien ne joue, soit Soundboard/TTS joue (queue vide = pas YT)
+                # Arrêter toute lecture en cours et jouer YT directement
+                if voice and voice.is_playing():
+                    voice.stop()
+                    # Vider la queue YT si Soundboard/TTS jouait (pour éviter confusion)
+                    self.queue.clear()
+                    await asyncio.sleep(0.5)  # Attendre que la lecture s'arrête
+                
                 voice.play(discord.FFmpegPCMAudio(audio_url, **self.ffmpeg_options), after=lambda e: self.check_queue(ctx))
                 voice.is_playing()
                 embed = discord.Embed(title="YouTube - Lecture", description=f'Le bot est en train de jouer : **"{video_title}"**', color=discord.Color.green())

@@ -95,16 +95,17 @@ class Help(commands.Cog):
             icon_url=ctx.author.avatar
         )
         
-        embed_message2.add_field(name="slist", value="Liste tous les sons disponibles =slist")
-        embed_message2.add_field(name="splay", value="Joue un son =splay [numéro] (ex: =splay 1)")
-        embed_message2.add_field(name="sjoin", value="Fait rejoindre le bot au salon vocal =sjoin (besoin d'être en vocal)")
+        embed_message2.add_field(name="slist", value="Liste tous les sons disponibles avec leur durée =slist")
+        embed_message2.add_field(name="splay", value="Joue un son =splay [numéro] (ex: =splay 1) - se connecte automatiquement au vocal")
         embed_message2.add_field(name="sleave", value="Fait quitter le bot du salon vocal =sleave")
         embed_message2.add_field(name="sstop", value="Arrête le son en cours =sstop")
-        embed_message2.add_field(name="srandom", value="Joue des sons aléatoires toutes les 1-5 minutes =srandom")
+        embed_message2.add_field(name="srandom", value="Joue des sons aléatoires toutes les 1-5 minutes =srandom - se connecte automatiquement au vocal")
         embed_message2.add_field(name="srandomskip", value="Skip le son aléatoire en cours =srandomskip")
         embed_message2.add_field(name="srandomstop", value="Arrête la lecture aléatoire =srandomstop")
         embed_message2.add_field(name="vkick", value="Expulse un utilisateur du vocal =vkick [@user] ou sans mention pour tous (admin perms only)")
-        embed_message2.add_field(name="tts", value="Fait parler le bot =tts [langue] [volume] [texte] (ex: =tts fr 3.0 Bonjour)")
+        embed_message2.add_field(name="tts", value="Fait parler le bot =tts [langue] [volume] [texte] (ex: =tts fr 3.0 Bonjour) - se connecte automatiquement au vocal")
+        embed_message2.add_field(name="Formats audio", value="Formats supportés : MP3, MP4, M4A, OGG, OPUS, WAV, FLAC, AAC", inline=False)
+        embed_message2.add_field(name="Gestion des conflits", value="Soundboard, YouTube et TTS partagent la connexion vocale. Si un module joue, les autres l'interrompent et jouent directement (pas de file d'attente entre modules différents).", inline=False)
         
         
         embed_message3 = discord.Embed(
@@ -209,8 +210,8 @@ class Help(commands.Cog):
         )
         
         embed_message7.add_field(name="leave", value="Déconnecte le bot du vocal =leave")
-        embed_message7.add_field(name="play", value="Joue une vidéo YouTube =play [URL]")
-        embed_message7.add_field(name="search", value="Recherche une vidéo YouTube =search [recherche]")
+        embed_message7.add_field(name="play", value="Joue une vidéo YouTube =play [URL] - se connecte automatiquement au vocal")
+        embed_message7.add_field(name="search", value="Recherche une vidéo YouTube =search [recherche] - se connecte automatiquement au vocal")
         embed_message7.add_field(name="skip", value="Skip la vidéo en cours =skip")
         embed_message7.add_field(name="stopm", value="Arrête la lecture =stopm")
         embed_message7.add_field(name="pause", value="Met en pause la vidéo =pause")
@@ -218,6 +219,7 @@ class Help(commands.Cog):
         embed_message7.add_field(name="queue", value="Affiche la file d'attente =queue")
         embed_message7.add_field(name="clearq", value="Vide la file d'attente =clearq")
         embed_message7.add_field(name="loop", value="Active/désactive la boucle =loop")
+        embed_message7.add_field(name="File d'attente", value="La file d'attente fonctionne uniquement entre vidéos YouTube. Si Soundboard ou TTS joue, YouTube interrompt et joue directement.", inline=False)
         embed_message7.set_footer(text=version1)
 
         await ctx.send(embed=embed_message)

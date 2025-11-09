@@ -53,7 +53,9 @@ Un bot Discord complet avec de nombreuses fonctionnalités, développé en Pytho
 - **`=8ball [question]`** - Pose une question à la boule magique
 - **`=hilaire`** - Jeu Hilaire
 - **`=deldms`** - Supprime tous les DMs du bot (admin perms)
-- **`=tts [langue] [volume] [texte]`** - Fait parler le bot (ex: `=tts fr 3.0 Bonjour`)
+- **`=tts [langue] [volume] [texte]`** - Fait parler le bot (ex: `=tts fr 3.0 Bonjour`) - se connecte automatiquement au canal vocal
+
+**Note :** La commande `=tts` se connecte automatiquement au canal vocal de l'utilisateur. Le bot reste connecté après la lecture TTS pour permettre l'utilisation d'autres fonctionnalités vocales.
 
 ### Conversion automatique des liens
 Le bot convertit automatiquement les liens des réseaux sociaux pour un meilleur affichage dans Discord :
@@ -73,19 +75,22 @@ Le bot convertit automatiquement les liens des réseaux sociaux pour un meilleur
   - Supprime les paramètres de requête
 
 ### Soundboard
-- **`=slist`** - Liste tous les sons disponibles
-- **`=splay [numéro]`** - Joue un son (ex: `=splay 1`)
-- **`=sjoin`** - Fait rejoindre le bot au salon vocal (besoin d'être en vocal)
+- **`=slist`** - Liste tous les sons disponibles avec leur durée
+- **`=splay [numéro]`** - Joue un son (ex: `=splay 1`) - se connecte automatiquement au canal vocal
 - **`=sleave`** - Fait quitter le bot du salon vocal
 - **`=sstop`** - Arrête le son en cours
-- **`=srandom`** - Joue des sons aléatoires toutes les 1-5 minutes
+- **`=srandom`** - Joue des sons aléatoires toutes les 1-5 minutes - se connecte automatiquement au canal vocal
 - **`=srandomskip`** - Skip le son aléatoire en cours
 - **`=srandomstop`** - Arrête la lecture aléatoire
 - **`=vkick [@user]`** - Expulse un utilisateur du vocal (admin perms)
 
+**Note :** Les commandes `=splay` et `=srandom` se connectent automatiquement au canal vocal de l'utilisateur, plus besoin de la commande `=sjoin`.
+
+**Formats audio supportés :** Le soundboard supporte plusieurs formats audio : MP3, MP4, M4A, OGG, OPUS, WAV, FLAC, AAC. Les fichiers avec ces extensions dans le dossier `Sounds/` seront automatiquement détectés et jouables. La commande `=slist` affiche la durée de chaque fichier (si disponible) ou "N/A" si la durée ne peut pas être déterminée.
+
 ### YouTube
-- **`=play [URL]`** - Joue une vidéo YouTube
-- **`=search [recherche]`** - Recherche une vidéo YouTube
+- **`=play [URL]`** - Joue une vidéo YouTube - se connecte automatiquement au canal vocal
+- **`=search [recherche]`** - Recherche une vidéo YouTube - se connecte automatiquement au canal vocal
 - **`=skip`** - Skip la vidéo en cours
 - **`=stopm`** - Arrête la lecture
 - **`=pause`** - Met en pause la vidéo
@@ -94,6 +99,8 @@ Le bot convertit automatiquement les liens des réseaux sociaux pour un meilleur
 - **`=clearq`** - Vide la file d'attente
 - **`=loop`** - Active/désactive la boucle
 - **`=leave`** - Déconnecte le bot du vocal
+
+**Note :** Les commandes `=play` et `=search` se connectent automatiquement au canal vocal de l'utilisateur.
 
 ### Leveling
 - **`=level [@user]`** - Voir votre niveau ou celui d'un utilisateur (optionnel)
@@ -115,6 +122,21 @@ Le bot peut automatiquement supprimer les messages contenant des mots interdits 
 - Tous les utilisateurs sont soumis à ce système (y compris les modérateurs)
 - Les commandes ne sont pas bloquées par ce système
 - Les modifications (ajout/suppression de mots) sont prises en compte en temps réel, comme pour les warns et levels
+
+### Gestion des fonctionnalités vocales (Soundboard, YouTube, TTS)
+Le bot gère intelligemment les conflits entre les différentes fonctionnalités vocales :
+- **Connexion automatique** : Soundboard (`=splay`, `=srandom`), YouTube (`=play`, `=search`) et TTS (`=tts`) se connectent automatiquement au canal vocal de l'utilisateur
+- **Partage de connexion** : Les trois modules partagent la même connexion vocale du bot dans le serveur
+- **Gestion des conflits** : Si le bot est déjà connecté via un module, les autres modules réutilisent cette connexion ou déplacent le bot vers le bon canal si nécessaire
+- **Transitions fluides** : Les lectures se remplacent proprement entre modules différents (par exemple, lancer Soundboard pendant que YouTube joue arrêtera YouTube et jouera le son directement)
+- **File d'attente YouTube** : La file d'attente YouTube fonctionne **uniquement entre vidéos YouTube**. Si Soundboard ou TTS joue, YouTube interrompt et joue directement (pas de file d'attente entre modules différents)
+- **Pas d'erreurs de connexion** : Plus d'erreurs "already connected" - le bot gère automatiquement toutes les situations
+- **TTS persistant** : Après une lecture TTS, le bot reste connecté pour permettre l'utilisation d'autres fonctionnalités vocales
+- **Comportement des transitions** :
+  - **Soundboard → YouTube** : YouTube arrête Soundboard et joue directement
+  - **YouTube → Soundboard** : Soundboard arrête YouTube, vide la file d'attente YT et joue directement
+  - **TTS → Soundboard/YouTube** : Le module arrête TTS et joue directement
+  - **YouTube → YouTube** : La nouvelle vidéo est ajoutée à la file d'attente (comportement normal)
 
 ## 📦 Installation
 
@@ -153,7 +175,7 @@ Le bot peut automatiquement supprimer les messages contenant des mots interdits 
 4. **Créer les fichiers nécessaires**
    - `token.txt` - Contient le token Discord du bot
    - `tokengpt.txt` - Contient le token OpenAI
-   - Dossier `Sounds/` - Pour les fichiers audio du soundboard
+   - Dossier `Sounds/` - Pour les fichiers audio du soundboard (formats supportés : MP3, MP4, M4A, OGG, OPUS, WAV, FLAC, AAC)
 
 5. **Lancer le bot**
    ```bash
@@ -250,6 +272,18 @@ bot_discord/
 - **Ajout d'un système complet de gestion des erreurs avec messages en français**
 - Messages d'erreur cohérents et informatifs pour toutes les commandes
 - Gestion centralisée des erreurs (permissions, arguments, cooldowns, etc.)
+- **Amélioration des fonctionnalités vocales :**
+  - Suppression de la commande `=sjoin` pour Soundboard
+  - Connexion automatique pour Soundboard (`=splay`, `=srandom`), YouTube (`=play`, `=search`) et TTS (`=tts`)
+  - Gestion intelligente des conflits entre Soundboard, YouTube et TTS
+  - Partage de connexion vocale entre tous les modules
+  - Transitions fluides entre les différentes fonctionnalités vocales
+  - Plus d'erreurs "already connected" - gestion automatique de toutes les situations
+- **Amélioration du Soundboard :**
+  - Support de plusieurs formats audio : MP3, MP4, M4A, OGG, OPUS, WAV, FLAC, AAC
+  - Détection automatique du format audio pour la lecture des métadonnées
+  - Gestion robuste des erreurs lors de la lecture des métadonnées (affichage "N/A" si la durée ne peut pas être déterminée)
+  - Correction des erreurs avec les fichiers audio mal formatés ou avec extension incorrecte
 
 ## 🔧 Commandes slash
 
@@ -334,6 +368,9 @@ Lorsqu'une erreur survient, le bot affiche un embed Discord avec :
 - Les liens TikTok, Instagram, Twitter/X et Reddit sont automatiquement convertis en formats compatibles pour un meilleur affichage dans Discord
 - Le bot résout automatiquement les liens courts (comme `vm.tiktok.com` ou `redd.it`) vers leurs versions PC complètes avant la conversion
 - Les paramètres de requête sont automatiquement supprimés pour des liens plus propres
+- **Fonctionnalités vocales** : Soundboard, YouTube et TTS partagent la même connexion vocale. Si le bot est déjà connecté via un module, les autres modules réutilisent cette connexion automatiquement
+- **Connexion automatique** : Plus besoin d'utiliser `=sjoin` pour Soundboard - les commandes `=splay` et `=srandom` se connectent automatiquement au canal vocal
+- **TTS persistant** : Après une lecture TTS, le bot reste connecté pour permettre l'utilisation d'autres fonctionnalités vocales sans avoir à se reconnecter
 
 ## ⚠️ Avertissements
 
