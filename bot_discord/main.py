@@ -49,14 +49,16 @@ client.paths = PATHS
 client.config = CONFIG
 
 activities = cycle([
-    Activity(name='Crococlip 🐊', type=discord.ActivityType.playing),
-    Activity(name='Geogebra Mode Examen 📊', type=discord.ActivityType.playing),
-    Activity(name='Coding 👨‍💻', type=ActivityType.listening),
-    Activity(name='MBN Modding 🔧', type=ActivityType.streaming, url='https://www.youtube.com/watch?v=nPeqfo4kkGw'),
-    Activity(name='Samsung Watch 5 Pro ⌚', type=discord.ActivityType.playing),
-    Activity(name='Chat GPT 🧠', type=discord.ActivityType.competing),
-    Activity(name='Dall E 🎈', type=discord.ActivityType.competing),
-    Activity(name='ZXZ AI 😏', type=discord.ActivityType.watching),
+    Activity(name='avec du wasabi 🌶️', type=discord.ActivityType.playing),
+    Activity(name='des rolls californiens 🍙', type=discord.ActivityType.watching),
+    Activity(name='l\'océan pacifique 🌊', type=ActivityType.listening),
+    Activity(name='au restaurant japonais 🍱', type=discord.ActivityType.competing),
+    Activity(name='=helps pour l\'aide', type=discord.ActivityType.watching),
+    Activity(name='des commandes slash 🎯', type=discord.ActivityType.playing),
+    Activity(name='la modération 🛡️', type=discord.ActivityType.streaming, url='https://www.youtube.com'),
+    Activity(name='le leveling 📊', type=discord.ActivityType.playing),
+    Activity(name='des sounds 🔊', type=ActivityType.listening),
+    Activity(name='YouTube Music 🎵', type=discord.ActivityType.playing),
 ])
 
 @client.event
