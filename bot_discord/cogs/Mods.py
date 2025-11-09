@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands, tasks
+from discord.ext import commands
 import asyncio
 from cogs import Help
 from cogs.Help import get_current_version
@@ -19,6 +19,9 @@ class Mods(commands.Cog):
         self.protected_role_id = 1236660715151167548  # ID du rôle à enlever
         self.blocked_user_id = 440168985615400984  # ID de l'utilisateur bloqué
         self.mp_conversations = {}  # {user_id_receveur: user_id_expediteur} pour tracker les conversations MP
+        # Initialiser warns et banned_words à None - seront chargés dans on_ready
+        self.warns = None
+        self.banned_words = None
     
     @commands.Cog.listener()
     async def on_ready(self):
@@ -42,9 +45,7 @@ class Mods(commands.Cog):
             self.banned_words = []
             with open(banned_words_path, 'w', encoding='utf-8') as f:
                 json.dump(self.banned_words, f, ensure_ascii=False, indent=2)
-        
-        # Démarrer la tâche pour vérifier les timeouts terminés
-        self.check_timeout_end.start()
+        # Note: La tâche check_timeout_end est maintenant dans cogs_auto_commands/Mods_auto.py
     
     def save_warns(self):
         """Sauvegarde les warns dans le fichier JSON"""
@@ -70,45 +71,6 @@ class Mods(commands.Cog):
             print(f"Erreur lors de l'enlèvement du rôle: {e}")
         return False
     
-    @tasks.loop(minutes=1)
-    async def check_timeout_end(self):
-        """Vérifie périodiquement si des timeouts sont terminés et remet les rôles"""
-        for guild_id_str, guild_data in self.warns.items():
-            try:
-                guild = self.client.get_guild(int(guild_id_str))
-                if not guild:
-                    continue
-                
-                role = guild.get_role(self.protected_role_id)
-                if not role:
-                    continue
-                
-                # Vérifier chaque membre du serveur
-                for member in guild.members:
-                    # Si le membre n'a plus de timeout et a des warns avec rôle enlevé
-                    member_id_str = str(member.id)
-                    if member_id_str in guild_data:
-                        member_data = guild_data[member_id_str]
-                        
-                        # Vérifier si le timeout est terminé
-                        if member.timed_out_until is None or member.timed_out_until < datetime.now(timezone.utc):
-                            # Vérifier si on doit remettre le rôle
-                            if member_data.get("role_removed", False):
-                                if role not in member.roles:
-                                    try:
-                                        await member.add_roles(role, reason="Rôle remis après timeout terminé")
-                                        member_data["role_removed"] = False
-                                        self.save_warns()
-                                        print(f"Rôle remis à {member.display_name} ({member_id_str}) après timeout terminé")
-                                    except Exception as e:
-                                        print(f"Erreur lors de la remise du rôle: {e}")
-            except Exception as e:
-                print(f"Erreur dans check_timeout_end: {e}")
-    
-    @check_timeout_end.before_loop
-    async def before_check_timeout_end(self):
-        await self.client.wait_until_ready()
-
 
         
     @commands.command(aliases=["prune"])
@@ -811,49 +773,6 @@ class Mods(commands.Cog):
         embed.add_field(name="Mots bannis:", value=words_text if words_text else "Aucun", inline=False)
         await ctx.send(embed=embed, delete_after=30)
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        """Détecte et supprime les messages contenant des mots bannis"""
-        # Ignorer les messages du bot
-        if message.author == self.client.user:
-            return
-        
-        # Ignorer les messages dans les DMs
-        if not isinstance(message.channel, discord.TextChannel):
-            return
-        
-        # Ignorer les commandes (messages qui commencent par le préfixe "=")
-        if message.content and message.content.startswith("="):
-            return
-        
-        # Ignorer les messages vides
-        if not message.content:
-            return
-        
-        # Vérifier si banned_words est défini
-        if not hasattr(self, 'banned_words') or not self.banned_words:
-            return  # Pas de mots bannis, on retourne
-        
-        # Vérifier si le message contient un mot banni
-        message_content_lower = message.content.lower()
-        for banned_word in self.banned_words:
-            if banned_word.lower() in message_content_lower:
-                try:
-                    await message.delete()
-                    # Envoyer un message d'avertissement en MP avec le mot détecté
-                    try:
-                        await message.author.send(f"⚠️ Votre message a été supprimé car il contenait le mot interdit : **`{banned_word}`**")
-                    except:
-                        pass  # Si on ne peut pas envoyer de MP, on continue
-                    break  # Supprimer seulement une fois même si plusieurs mots sont présents
-                except discord.Forbidden:
-                    # Le bot n'a pas les permissions pour supprimer le message
-                    pass
-                except discord.NotFound:
-                    # Le message a déjà été supprimé
-                    pass
-                except Exception:
-                    pass
 
                   
 async def setup(client):

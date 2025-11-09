@@ -5,7 +5,6 @@ from itertools import cycle
 import os
 import asyncio
 import time
-from cogs import Help
 from cogs.Help import get_current_version
 import io
 import traceback
@@ -35,6 +34,7 @@ PATHS = {
     'sounds_dir': "./Sounds",
     'cogs_dir': "./cogs",
     'cogs_slash_dir': "./cogs_slash_commands",
+    'cogs_auto_commands_dir': "./cogs_auto_commands",
     'update_logs_json': "./json/update_logs.json"
 }
 
@@ -86,6 +86,16 @@ async def on_ready():
 
 
 async def load():
+    global error_handler_cog
+    
+    # Charger ErrorHandler en premier depuis cogs_auto_commands pour gérer les erreurs dès le début
+    try:
+        await client.load_extension("cogs_auto_commands.ErrorHandler")
+        error_handler_cog = client.get_cog('ErrorHandler')
+        print(f"Chargé: cogs_auto_commands.ErrorHandler")
+    except Exception as e:
+        print(f"Erreur lors du chargement de cogs_auto_commands.ErrorHandler: {e}")
+    
     # Charger les cogs avec commandes prefix (=)
     cogs_dir = client.paths['cogs_dir']
     for filename in os.listdir(cogs_dir):
@@ -108,6 +118,18 @@ async def load():
                     print(f"Chargé: cogs_slash_commands.{filename[:-3]}")
                 except Exception as e:
                     print(f"Erreur lors du chargement de cogs_slash_commands.{filename[:-3]}: {e}")
+                    
+    # Charger les detecteurs automatiques (ErrorHandler déjà chargé, on l'ignore)
+    cogs_auto_commands_dir = client.paths['cogs_auto_commands_dir']
+    if os.path.exists(cogs_auto_commands_dir):
+        for filename in os.listdir(cogs_auto_commands_dir):
+            # Ignorer __init__.py et ErrorHandler.py (déjà chargé)
+            if filename.endswith(".py") and filename != "__init__.py" and filename != "ErrorHandler.py":
+                try:
+                    await client.load_extension(f"cogs_auto_commands.{filename[:-3]}")
+                    print(f"Chargé: cogs_auto_commands.{filename[:-3]}")
+                except Exception as e:
+                    print(f"Erreur lors du chargement de cogs_auto_commands.{filename[:-3]}: {e}")
 
 
 @tasks.loop(seconds=7)
@@ -115,623 +137,34 @@ async def change_activity():
     activity = next(activities)
     await client.change_presence(activity=activity)
    
-# Gestionnaire d'erreurs pour les commandes prefix
-@client.event    
-async def on_command_error(ctx, error):
-    # Supprimer le message de commande si c'est un channel texte
-    if isinstance(ctx.channel, discord.TextChannel):
-        try:
-            await ctx.message.delete()
-        except:
-            pass
-    
-    # Commande inconnue
-    if isinstance(error, commands.CommandNotFound):
-        embed = discord.Embed(title="Commande inconnue", description="Utilisez **=helps** pour la liste des commandes", color=discord.Color.red())
-        if ctx.guild:
-            embed.set_image(url=ctx.guild.icon)
-        embed.set_footer(text=get_current_version(client))
-        await ctx.send(embed=embed, delete_after=10)
-        return
-    
-    # Permissions manquantes pour l'utilisateur
-    if isinstance(error, commands.MissingPermissions):
-        missing_perms = [perm.replace('_', ' ').title() for perm in error.missing_permissions]
-        perms_text = ", ".join(missing_perms)
-        embed = discord.Embed(
-            title="Permissions insuffisantes",
-            description=f"Vous n'avez pas les permissions nécessaires pour utiliser cette commande.\n\n**Permissions requises:** {perms_text}",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text=get_current_version(client))
-        await ctx.send(embed=embed, delete_after=10)
-        return
-    
-    # Permissions manquantes pour le bot
-    if isinstance(error, commands.BotMissingPermissions):
-        missing_perms = [perm.replace('_', ' ').title() for perm in error.missing_permissions]
-        perms_text = ", ".join(missing_perms)
-        embed = discord.Embed(
-            title="Permissions du bot insuffisantes",
-            description=f"Le bot n'a pas les permissions nécessaires pour exécuter cette commande.\n\n**Permissions requises:** {perms_text}",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text=get_current_version(client))
-        await ctx.send(embed=embed, delete_after=10)
-        return
-    
-    # Argument requis manquant
-    if isinstance(error, commands.MissingRequiredArgument):
-        embed = discord.Embed(
-            title="Argument manquant",
-            description=f"La commande `{ctx.command.name}` nécessite l'argument `{error.param.name}`.\n\nUtilisez **=helps** pour voir la syntaxe correcte.",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text=get_current_version(client))
-        await ctx.send(embed=embed, delete_after=10)
-        return
-    
-    # Argument invalide
-    if isinstance(error, commands.BadArgument):
-        embed = discord.Embed(
-            title="Argument invalide",
-            description=f"L'argument fourni est invalide.\n\nUtilisez **=helps** pour voir la syntaxe correcte de la commande `{ctx.command.name}`.",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text=get_current_version(client))
-        await ctx.send(embed=embed, delete_after=10)
-        return
-    
-    # Commande en cooldown
-    if isinstance(error, commands.CommandOnCooldown):
-        embed = discord.Embed(
-            title="Commande en cooldown",
-            description=f"Vous devez attendre **{error.retry_after:.1f}** secondes avant de réutiliser cette commande.",
-            color=discord.Color.orange()
-        )
-        embed.set_footer(text=get_current_version(client))
-        await ctx.send(embed=embed, delete_after=error.retry_after)
-        return
-    
-    # Commande réservée au propriétaire
-    if isinstance(error, commands.NotOwner):
-        embed = discord.Embed(
-            title="Accès refusé",
-            description="Cette commande est réservée au propriétaire du bot.",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text=get_current_version(client))
-        await ctx.send(embed=embed, delete_after=10)
-        return
-    
-    # Commande uniquement en guild
-    if isinstance(error, commands.NoPrivateMessage):
-        embed = discord.Embed(
-            title="Commande non disponible",
-            description="Cette commande ne peut pas être utilisée en message privé.",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text=get_current_version(client))
-        await ctx.send(embed=embed, delete_after=10)
-        return
-    
-    # Erreur de check (pour les checks personnalisés)
-    if isinstance(error, commands.CheckFailure):
-        embed = discord.Embed(
-            title="Vérification échouée",
-            description="Vous ne remplissez pas les conditions requises pour utiliser cette commande.",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text=get_current_version(client))
-        await ctx.send(embed=embed, delete_after=10)
-        return
-    
-    # Erreur d'invocation (erreurs générales dans la commande)
-    if isinstance(error, commands.CommandInvokeError):
-        original_error = error.original
-        # Gérer les erreurs Discord spécifiques
-        if isinstance(original_error, discord.Forbidden):
-            embed = discord.Embed(
-                title="Erreur de permissions",
-                description="Le bot n'a pas les permissions nécessaires pour effectuer cette action.",
-                color=discord.Color.red()
-            )
-            embed.set_footer(text=get_current_version(client))
-            try:
-                await ctx.send(embed=embed, delete_after=10)
-            except:
-                pass
-            return
-        elif isinstance(original_error, discord.NotFound):
-            embed = discord.Embed(
-                title="Ressource introuvable",
-                description="La ressource demandée n'a pas été trouvée.",
-                color=discord.Color.red()
-            )
-            embed.set_footer(text=get_current_version(client))
-            try:
-                await ctx.send(embed=embed, delete_after=10)
-            except:
-                pass
-            return
-        else:
-            # Autres erreurs - afficher un message générique
-            embed = discord.Embed(
-                title="Erreur lors de l'exécution",
-                description="Une erreur s'est produite lors de l'exécution de la commande.",
-                color=discord.Color.red()
-            )
-            embed.set_footer(text=get_current_version(client))
-            try:
-                await ctx.send(embed=embed, delete_after=10)
-            except:
-                pass
-            # Logger l'erreur pour le débogage
-            command_name = ctx.command.name if ctx.command else 'inconnue'
-            print(f"\nErreur dans la commande {command_name}:")
-            traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
-            return
-    
-    # Pour toutes les autres erreurs non gérées
-    print(f"\nErreur non gérée dans {ctx.command.name if ctx.command else 'commande inconnue'}:")
-    traceback.print_exception(type(error), error, error.__traceback__)
+# Enregistrer les gestionnaires d'erreurs depuis le cog ErrorHandler
+# Note: on_command_error fonctionne avec @commands.Cog.listener() dans le cog
+# mais on_app_command_error doit être enregistré manuellement car il utilise @client.tree.error
+error_handler_cog = None
 
-
-# Gestionnaire d'erreurs pour les commandes slash
 @client.tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
-    """Gestionnaire d'erreurs global pour les commandes slash"""
-    # Fonction helper pour répondre à l'interaction avec fallback
-    async def send_error_embed(embed, use_channel_fallback=True):
+    """Gestionnaire d'erreurs pour les commandes slash - délègue au cog ErrorHandler"""
+    if error_handler_cog:
+        await error_handler_cog.handle_app_command_error(interaction, error)
+    else:
+        # Fallback si le cog n'est pas encore chargé
+        embed = discord.Embed(
+            title="Erreur",
+            description="Une erreur s'est produite. Le gestionnaire d'erreurs n'est pas encore chargé.",
+            color=discord.Color.red()
+        )
         try:
             if interaction.response.is_done():
-                await interaction.followup.send(embed=embed, ephemeral=True, wait=False)
+                await interaction.followup.send(embed=embed, ephemeral=True)
             else:
                 await interaction.response.send_message(embed=embed, ephemeral=True)
-        except (discord.NotFound, discord.HTTPException) as e:
-            # Webhook expiré ou erreur HTTP - essayer avec followup si pas déjà fait
-            if not interaction.response.is_done():
-                try:
-                    await interaction.response.send_message(embed=embed, ephemeral=True)
-                    return
-                except:
-                    pass
-            
-            # Si le fallback est activé et que le channel est disponible, envoyer un message normal
-            if use_channel_fallback and interaction.channel:
-                try:
-                    await interaction.channel.send(embed=embed, delete_after=10)
-                except:
-                    pass
-        except Exception as e:
-            # Dernière tentative avec le channel si disponible
-            if use_channel_fallback and interaction.channel:
-                try:
-                    await interaction.channel.send(embed=embed, delete_after=10)
-                except:
-                    pass
-    
-    command_name = interaction.command.name if interaction.command else 'inconnue'
-    
-    # Permissions manquantes pour l'utilisateur
-    if isinstance(error, app_commands.MissingPermissions):
-        missing_perms = [perm.replace('_', ' ').title() for perm in error.missing_permissions]
-        perms_text = ", ".join(missing_perms)
-        embed = discord.Embed(
-            title="Permissions insuffisantes",
-            description=f"Vous n'avez pas les permissions nécessaires pour utiliser cette commande.\n\n**Permissions requises:** {perms_text}",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text=get_current_version(client))
-        await send_error_embed(embed)
-        return
-    
-    # Permissions manquantes pour le bot
-    if isinstance(error, app_commands.BotMissingPermissions):
-        missing_perms = [perm.replace('_', ' ').title() for perm in error.missing_permissions]
-        perms_text = ", ".join(missing_perms)
-        embed = discord.Embed(
-            title="Permissions du bot insuffisantes",
-            description=f"Le bot n'a pas les permissions nécessaires pour exécuter cette commande.\n\n**Permissions requises:** {perms_text}",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text=get_current_version(client))
-        await send_error_embed(embed)
-        return
-    
-    # Commande en cooldown
-    if isinstance(error, app_commands.CommandOnCooldown):
-        embed = discord.Embed(
-            title="Commande en cooldown",
-            description=f"Vous devez attendre **{error.retry_after:.1f}** secondes avant de réutiliser cette commande.",
-            color=discord.Color.orange()
-        )
-        embed.set_footer(text=get_current_version(client))
-        await send_error_embed(embed)
-        return
-    
-    # Commande réservée au propriétaire (pas de NotOwner dans app_commands, géré par les checks)
-    # Les commandes owner-only utilisent des checks personnalisés qui lèvent CheckFailure
-    
-    # Erreur de check
-    if isinstance(error, app_commands.CheckFailure):
-        embed = discord.Embed(
-            title="Vérification échouée",
-            description="Vous ne remplissez pas les conditions requises pour utiliser cette commande.",
-            color=discord.Color.red()
-        )
-        embed.set_footer(text=get_current_version(client))
-        await send_error_embed(embed)
-        return
-    
-    # Erreur d'invocation
-    if isinstance(error, app_commands.CommandInvokeError):
-        original_error = error.original
-        
-        # Gérer les erreurs Discord spécifiques
-        if isinstance(original_error, discord.Forbidden):
-            embed = discord.Embed(
-                title="Erreur de permissions",
-                description="Le bot n'a pas les permissions nécessaires pour effectuer cette action.",
-                color=discord.Color.red()
-            )
-            embed.set_footer(text=get_current_version(client))
-            await send_error_embed(embed)
-            return
-        elif isinstance(original_error, discord.NotFound):
-            # Erreur 404 - peut être due à un webhook expiré ou une ressource supprimée
-            # Si c'est un webhook expiré (error code 10008), la commande devrait l'avoir géré
-            error_code = getattr(original_error, 'code', None)
-            if error_code == 10008:
-                # Webhook expiré - ne pas afficher d'erreur car la commande a probablement réussi
-                # Les commandes individuelles gèrent ce cas avec un fallback sur channel.send
-                print(f"Webhook expiré pour la commande {command_name} (code 10008) - géré par la commande")
-                return
-            else:
-                embed = discord.Embed(
-                    title="Ressource introuvable",
-                    description="La ressource demandée n'a pas été trouvée.",
-                    color=discord.Color.red()
-                )
-                embed.set_footer(text=get_current_version(client))
-                await send_error_embed(embed, use_channel_fallback=True)
-                return
-        elif isinstance(original_error, discord.HTTPException):
-            embed = discord.Embed(
-                title="Erreur HTTP",
-                description=f"Une erreur HTTP s'est produite: {str(original_error)}",
-                color=discord.Color.red()
-            )
-            embed.set_footer(text=get_current_version(client))
-            await send_error_embed(embed)
-            print(f"\nErreur HTTP dans la commande slash {command_name}:")
-            traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
-            return
-        elif isinstance(original_error, ValueError):
-            embed = discord.Embed(
-                title="Valeur invalide",
-                description=f"La valeur fournie est invalide: {str(original_error)}",
-                color=discord.Color.red()
-            )
-            embed.set_footer(text=get_current_version(client))
-            await send_error_embed(embed)
-            return
-        elif isinstance(original_error, TypeError):
-            embed = discord.Embed(
-                title="Type invalide",
-                description=f"Le type fourni est invalide: {str(original_error)}",
-                color=discord.Color.red()
-            )
-            embed.set_footer(text=get_current_version(client))
-            await send_error_embed(embed)
-            return
-        elif isinstance(original_error, AttributeError):
-            embed = discord.Embed(
-                title="Erreur d'attribut",
-                description="Une erreur s'est produite lors de l'accès à un attribut.",
-                color=discord.Color.red()
-            )
-            embed.set_footer(text=get_current_version(client))
-            await send_error_embed(embed)
-            print(f"\nErreur d'attribut dans la commande slash {command_name}:")
-            traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
-            return
-        elif isinstance(original_error, KeyError):
-            embed = discord.Embed(
-                title="Clé introuvable",
-                description="Une clé nécessaire n'a pas été trouvée.",
-                color=discord.Color.red()
-            )
-            embed.set_footer(text=get_current_version(client))
-            await send_error_embed(embed)
-            print(f"\nErreur de clé dans la commande slash {command_name}:")
-            traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
-            return
-        elif isinstance(original_error, FileNotFoundError):
-            embed = discord.Embed(
-                title="Fichier introuvable",
-                description="Un fichier nécessaire n'a pas été trouvé.",
-                color=discord.Color.red()
-            )
-            embed.set_footer(text=get_current_version(client))
-            await send_error_embed(embed)
-            print(f"\nFichier introuvable dans la commande slash {command_name}:")
-            traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
-            return
-        else:
-            # Autres erreurs
-            embed = discord.Embed(
-                title="Erreur lors de l'exécution",
-                description="Une erreur s'est produite lors de l'exécution de la commande.",
-                color=discord.Color.red()
-            )
-            embed.set_footer(text=get_current_version(client))
-            await send_error_embed(embed)
-            # Logger l'erreur pour le débogage
-            print(f"\nErreur dans la commande slash {command_name}:")
-            traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
-            return
-    
-    # Pour toutes les autres erreurs non gérées
-    embed = discord.Embed(
-        title="Erreur",
-        description="Une erreur inattendue s'est produite.",
-        color=discord.Color.red()
-    )
-    embed.set_footer(text=get_current_version(client))
-    await send_error_embed(embed)
-    print(f"\nErreur non gérée dans la commande slash {command_name}:")
-    traceback.print_exception(type(error), error, error.__traceback__)      
-
-# Commande pour re-synchroniser les commandes slash
-@client.command(name="sync", aliases=["syncslash", "reloadslash"])
-@commands.is_owner()
-async def sync_commands(ctx):
-    """Re-synchronise les commandes slash (owner only)"""
-    if isinstance(ctx.channel, discord.TextChannel):
-        await ctx.message.delete()
-    
-    try:
-        # Message intermédiaire
-        embed = discord.Embed(
-            title="🔄 Synchronisation en cours...",
-            description="Synchronisation des commandes slash...",
-            color=discord.Color.orange()
-        )
-        embed.set_footer(text=get_current_version(client))
-        status_msg = await ctx.send(embed=embed)
-        
-        # Synchroniser sur le serveur actuel
-        synced_guild = await client.tree.sync(guild=ctx.guild)
-        # Synchroniser globalement
-        synced_global = await client.tree.sync()
-        
-        success_embed = discord.Embed(
-            title="✓ Synchronisation réussie",
-            description=f"Commandes synchronisées sur '{ctx.guild.name}'",
-            color=discord.Color.green()
-        )
-        
-        if synced_guild or synced_global:
-            count = len(synced_guild) if synced_guild else len(synced_global) if synced_global else 0
-            success_embed.add_field(
-                name="Commandes synchronisées",
-                value=f"{count} commande(s) disponible(s)",
-                inline=False
-            )
-        
-        success_embed.set_footer(text=get_current_version(client))
-        await status_msg.edit(embed=success_embed)
-        
-        # Supprimer le message après 10 secondes
-        await asyncio.sleep(10)
-        try:
-            await status_msg.delete()
         except:
             pass
-            
-    except Exception as e:
-        error_embed = discord.Embed(
-            title="✗ Erreur de synchronisation",
-            description=f"Erreur: {str(e)}",
-            color=discord.Color.red()
-        )
-        error_embed.set_footer(text=get_current_version(client))
-        try:
-            await status_msg.edit(embed=error_embed)
-            await asyncio.sleep(10)
-            try:
-                await status_msg.delete()
-            except:
-                pass
-        except:
-            await ctx.send(embed=error_embed, delete_after=10)
+        print(f"Erreur dans la commande slash (cog non chargé): {error}")
+        traceback.print_exception(type(error), error, error.__traceback__)
 
-# Commande pour diagnostiquer les problèmes de commandes slash
-@client.command(name="slashinfo", aliases=["slashdebug", "cmdinfo"])
-@commands.is_owner()
-async def slash_info(ctx):
-    """Affiche des informations de diagnostic sur les commandes slash (owner only)"""
-    if isinstance(ctx.channel, discord.TextChannel):
-        await ctx.message.delete()
-    
-    embed = discord.Embed(
-        title="🔍 Diagnostic des Commandes Slash",
-        color=discord.Color.blue()
-    )
-    
-    # Informations du bot
-    embed.add_field(
-        name="Bot Information",
-        value=f"**Nom:** {client.user.name}\n**ID:** {client.user.id}",
-        inline=False
-    )
-    
-    # Commandes locales
-    local_commands = []
-    try:
-        commands_list = client.tree.get_commands()
-        for cmd in commands_list:
-            local_commands.append(cmd.name)
-    except:
-        pass
-    
-    embed.add_field(
-        name="Commandes Enregistrées",
-        value=f"{len(local_commands)} commande(s): {', '.join([f'`/{cmd}`' for cmd in local_commands]) if local_commands else 'Aucune'}", 
-        inline=False
-    )
-    
-    # Lien d'invitation
-    invite_url = f"https://discord.com/api/oauth2/authorize?client_id={client.user.id}&permissions=8&scope=bot%20applications.commands"
-    embed.add_field(
-        name="🔗 Lien d'Invitation",
-        value=f"[Cliquez ici]({invite_url})",
-        inline=False
-    )
-    
-    embed.set_footer(text=get_current_version(client))
-    await ctx.send(embed=embed, delete_after=30)
-
-# Commande pour effacer toutes les commandes slash
-@client.command(name="clearslash", aliases=["clearslashcommands", "deleteslash"])
-@commands.is_owner()
-async def clear_slash_commands(ctx):
-    """Efface toutes les commandes slash de Discord (owner only)"""
-    if isinstance(ctx.channel, discord.TextChannel):
-        await ctx.message.delete()
-    
-    status_msg = None
-    try:
-        # Message intermédiaire
-        embed = discord.Embed(
-            title="🗑️ Suppression des commandes slash",
-            description="Suppression en cours...",
-            color=discord.Color.orange()
-        )
-        embed.set_footer(text=get_current_version(client))
-        status_msg = await ctx.send(embed=embed)
-        
-        # Obtenir l'application ID pour compter les commandes avant suppression
-        app_info = await client.application_info()
-        application_id = app_info.id
-        
-        # Compter les commandes avant suppression
-        try:
-            global_commands_before = await client.http.get_global_commands(application_id)
-            count_global_before = len(global_commands_before)
-        except:
-            count_global_before = 0
-        
-        guild_counts_before = {}
-        for guild in client.guilds:
-            try:
-                guild_commands = await client.http.get_guild_commands(application_id, guild.id)
-                guild_counts_before[guild.id] = len(guild_commands)
-            except:
-                guild_counts_before[guild.id] = 0
-        
-        # Méthode recommandée : clear_commands() puis sync()
-        # Cette méthode synchronise un arbre vide, ce qui supprime toutes les commandes
-        
-        # 1. Effacer les commandes globales
-        client.tree.clear_commands(guild=None)
-        await client.tree.sync(guild=None)
-        
-        # 2. Effacer les commandes par serveur
-        synced_guilds = 0
-        for guild in client.guilds:
-            try:
-                client.tree.clear_commands(guild=guild)
-                await client.tree.sync(guild=guild)
-                synced_guilds += 1
-            except Exception:
-                continue
-        
-        # Vérifier que les commandes ont bien été supprimées
-        try:
-            global_commands_after = await client.http.get_global_commands(application_id)
-            count_global_after = len(global_commands_after)
-        except:
-            count_global_after = 0
-        
-        total_deleted_global = count_global_before - count_global_after
-        total_deleted_guild = sum(guild_counts_before.values())
-        
-        # Créer l'embed de résultat
-        success_embed = discord.Embed(
-            title="✅ Commandes slash supprimées",
-            description="Toutes les commandes slash ont été supprimées.",
-            color=discord.Color.green()
-        )
-        
-        if count_global_before > 0:
-            success_embed.add_field(
-                name="Commandes globales",
-                value=f"{count_global_before} → {count_global_after} (supprimées: {total_deleted_global})",
-                inline=False
-            )
-        
-        if sum(guild_counts_before.values()) > 0:
-            success_embed.add_field(
-                name="Commandes par serveur",
-                value=f"Supprimées de {synced_guilds} serveur(s)",
-                inline=False
-            )
-        
-        success_embed.add_field(
-            name="⚠️ Important",
-            value="Les commandes ont été supprimées. **Redémarrez Discord** ou attendez quelques minutes pour que les changements soient visibles. Les commandes peuvent rester en cache côté client Discord.",
-            inline=False
-        )
-        
-        success_embed.set_footer(text=get_current_version(client))
-        await status_msg.edit(embed=success_embed)
-        
-        # Supprimer le message après 10 secondes
-        await asyncio.sleep(10)
-        try:
-            await status_msg.delete()
-        except:
-            pass
-        
-    except Exception as e:
-        error_embed = discord.Embed(
-            title="✗ Erreur de suppression",
-            description=f"Erreur: {str(e)}",
-            color=discord.Color.red()
-        )
-        error_embed.set_footer(text=get_current_version(client))
-        try:
-            if status_msg:
-                await status_msg.edit(embed=error_embed)
-                await asyncio.sleep(10)
-                try:
-                    await status_msg.delete()
-                except:
-                    pass
-            else:
-                await ctx.send(embed=error_embed, delete_after=10)
-        except:
-            await ctx.send(embed=error_embed, delete_after=10)
-
-# stop the bot
-@client.command()
-@commands.is_owner()
-async def stop(ctx):
-    await ctx.message.delete()
-    bot_latency = round(client.latency * 1000)
-    embed = discord.Embed(title= "Arrêt", description=f"Le Bot s'arrête Ping {bot_latency} ms.", color=discord.Color.red())
-    embed.set_footer(text=get_current_version(client))
-    with open(client.paths['hilaire2_png'], "rb") as f:
-        image_data = f.read()
-    embed.set_thumbnail(url="attachment://hilaire2.png")
-    embed.set_image(url=ctx.guild.icon)
-    await ctx.send(embed=embed, file=discord.File(io.BytesIO(image_data), "hilaire2.png"))
-    print("")
-    print("Arrêté par l'utilisateur")
-    print("")
-    await client.close()
+# Les commandes owner-only (sync, slashinfo, clearslash, stop) sont maintenant dans cogs/Owner.py
 
 # Run the bot
 if __name__ == "__main__":

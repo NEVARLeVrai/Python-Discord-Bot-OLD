@@ -171,6 +171,7 @@ class Help(commands.Cog):
         embed_message3.add_field(name="resetlevel, rsl", value="Reset tous les niveaux =resetlevel (messages perms only)")
         embed_message3.add_field(name="levelsettings, lvls", value="Active/désactive le système de leveling =levelsettings (admins perms only)")
         embed_message3.add_field(name="levelboard, levelleaderboard, levellb, lvlboard", value="Affiche le leaderboard des levels =levelboard")
+        embed_message3.add_field(name="⚡ Système automatique", value="Le leveling fonctionne automatiquement : chaque message = +1 XP. Un niveau est atteint quand XP ≥ (niveau+1)². Un message de félicitations est envoyé automatiquement.", inline=False)
         
         embed_message4 = discord.Embed(
         title="Helps Mods",
@@ -200,6 +201,8 @@ class Help(commands.Cog):
         embed_message4.add_field(name="banword, addbannedword", value="Ajoute un mot à la liste des mots bannis =banword [mot] (messages perms only)")
         embed_message4.add_field(name="unbanword, removebannedword", value="Retire un mot de la liste des mots bannis =unbanword [mot] (messages perms only)")
         embed_message4.add_field(name="listbannedwords, bannedwords, bwlist", value="Affiche la liste des mots bannis =listbannedwords (messages perms only)")
+        embed_message4.add_field(name="⚠️ Détection automatique", value="Les mots bannis sont automatiquement détectés et supprimés. L'utilisateur reçoit un warn automatique par MP avec la raison \"mot banni utilisé : [mot]\".", inline=False)
+        embed_message4.add_field(name="Sanctions automatiques", value="5 warns → timeout 10 min\n10 warns → timeout 10 min\n15 warns → kick automatique\n20 warns → ban automatique", inline=False)
         
         embed_message5 = discord.Embed(
         title="Helps Utility",
@@ -219,7 +222,7 @@ class Help(commands.Cog):
         embed_message5.add_field(name="8ball, magicball", value="Pose une question à la boule magique =8ball [votre question]")
         embed_message5.add_field(name="hilaire", value="Jeu Hilaire =hilaire")
         embed_message5.add_field(name="deldms, delmp", value="Supprime tous les DMs du bot =deldms (admin perms only)")
-        embed_message5.add_field(name="Conversion automatique", value="Le bot convertit automatiquement les liens:\n• TikTok → tiktokez.com (résout les liens courts vm.tiktok.com)\n• Instagram → eeinstagram.com\n• Twitter/X → fxtwitter.com\n• Reddit → vxreddit.com (résout les liens courts redd.it)")
+        embed_message5.add_field(name="🔗 Conversion automatique", value="Le bot convertit automatiquement les liens sociaux pour des embeds optimisés:\n• TikTok → tiktokez.com (résout les liens courts vm.tiktok.com)\n• Instagram → eeinstagram.com\n• Twitter/X → fxtwitter.com\n• Reddit → vxreddit.com (résout les liens courts redd.it)\n\nLes messages originaux sont supprimés et remplacés par le lien optimisé.", inline=False)
         
         embed_message6 = discord.Embed(
             title="Helps MP",
@@ -370,36 +373,6 @@ class Help(commands.Cog):
 
 
 
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        if message.author == self.client.user:
-            return  # Ignore les messages envoyés par le bot lui-même
-        
-        if isinstance(message.channel, discord.DMChannel):
-            user = message.author
-            content = message.content
-            
-            # Vérifie si le message est une commande ou une mention
-            if content.startswith("=") or message.mention_everyone or self.client.user in message.mentions:
-                return  # Ignore les messages de commande ou les mentions
-            
-            # Vérifier si c'est une réponse à un MP initié par la commande =mp
-            mods_cog = self.client.get_cog('Mods')
-            if mods_cog and hasattr(mods_cog, 'mp_conversations'):
-                if user.id in mods_cog.mp_conversations:
-                    # C'est une réponse à un MP initié par =mp
-                    original_sender_id = mods_cog.mp_conversations[user.id]
-                    original_sender = self.client.get_user(original_sender_id)
-                    
-                    if original_sender:
-                        await original_sender.send(f"**Réponse de {user} ({user.mention}):**\n\n{content}")
-                    return
-            
-            # Sinon, forwarder au target_user_id comme avant
-            target_user = self.client.get_user(self.client.config['target_user_id'])
-            
-            if target_user:
-                await target_user.send(f"Message privé de **{user}**: \n\n{content}")
 
 
 async def setup(client):

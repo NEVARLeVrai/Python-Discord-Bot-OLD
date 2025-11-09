@@ -23,9 +23,8 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 
 ### 🧩 General Commands
 - **`=helps`** – Displays all available commands  
-- **`=ping`** – Shows the bot’s latency in ms  
-- **`/ping`** – Slash command version of ping  
-- **`=version`** or **`=v`** – Displays the bot’s version  
+- **`=ping`** – Shows the bot's latency in ms  
+- **`=version`** or **`=v`** – Displays the bot's version  
 - **`=report [message]`** – Report a bug or send feedback  
 - **`=stop`** – Stops the bot *(owner only)*  
 - **`=sync`**, **`=syncslash`**, or **`=reloadslash`** – Re-sync slash commands *(owner only)*  
@@ -52,6 +51,12 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 - **`=unbanword [word]`** – Remove a banned word  
 - **`=listbannedwords`** – Display all banned words  
 
+**Automatic Features:**
+- **Banned word detection** – Automatically detects and deletes messages containing banned words
+- **Automatic warn** – Users receive a warn via DM when using a banned word (reason: "mot banni utilisé : [word]")
+- **Automatic sanctions** – 5 warns → 10 min timeout · 10 warns → 10 min timeout · 15 warns → kick · 20 warns → ban
+- **Role protection** – Protected roles are temporarily removed during sanctions and restored after timeout
+
 ---
 
 ### 🧰 Utility
@@ -63,16 +68,18 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 - **`=deldms`** – Delete all bot DMs *(admin only)*  
 - **`=tts [language] [volume] [text]`** – Make the bot speak (e.g. `=tts fr 3.0 Hello`)  
 
-> The bot automatically joins the user’s voice channel and stays connected for other audio features.
+> The bot automatically joins the user's voice channel and stays connected for other audio features.
 
 ---
 
 ### 🔗 Automatic Link Conversion
 Automatically converts social-media links for cleaner Discord embeds:  
-- **TikTok** → `tiktokez.com` (expands short links, removes query params)  
+- **TikTok** → `tiktokez.com` (expands short links like `vm.tiktok.com`, removes query params)  
 - **Instagram** → `eeinstagram.com`  
 - **Twitter/X** → `fxtwitter.com`  
-- **Reddit** → `vxreddit.com`  
+- **Reddit** → `vxreddit.com` (expands short links like `redd.it`)  
+
+Original messages are deleted and replaced with the optimized link.
 
 ---
 
@@ -103,8 +110,10 @@ Supported formats : MP3 / MP4 / M4A / OGG / OPUS / WAV / FLAC / AAC
 - **`=levelsettings`** – Toggle leveling  
 - **`=levelboard`** – Show leaderboard  
 
-Automatic sanctions :  
-5 warns → 10 min timeout · 10 warns → 10 min timeout · 15 warns → kick · 20 warns → ban  
+**Automatic Features:**
+- **Automatic XP** – Each message = +1 XP (when leveling is enabled)
+- **Level up formula** – Level up when XP ≥ (level + 1)²
+- **Level up notification** – Automatic congratulation message when a user levels up
 
 ---
 
@@ -155,16 +164,17 @@ Required permissions :
 
 ```
 bot_discord/
-├── main.py
+├── main.py                    # Point d'entrée principal, configuration centralisée
 ├── requirements.txt
-├── cogs/
+├── cogs/                      # Commandes prefix (=)
 │   ├── Help.py
 │   ├── Mods.py
 │   ├── Utility.py
 │   ├── Soundboard.py
 │   ├── Youtube.py
-│   └── Leveling.py
-├── cogs_slash_commands/
+│   ├── Leveling.py
+│   └── Owner.py               # Commandes owner-only
+├── cogs_slash_commands/       # Commandes slash (/)
 │   ├── Help_slash.py
 │   ├── Mods_slash.py
 │   ├── Utility_slash.py
@@ -172,6 +182,12 @@ bot_discord/
 │   ├── Youtube_slash.py
 │   ├── Leveling_slash.py
 │   └── Owner_slash.py
+├── cogs_auto_commands/        # Détections automatiques et gestion d'erreurs
+│   ├── ErrorHandler.py        # Gestion centralisée des erreurs
+│   ├── Mods_auto.py           # Détection mots bannis + warns automatiques
+│   ├── Leveling_auto.py       # Système de leveling automatique
+│   ├── Utility_auto.py        # Conversion automatique des liens sociaux
+│   └── Help_auto.py           # Forwarding automatique des MPs
 ├── json/
 │   ├── warns.json
 │   ├── levels.json
@@ -180,9 +196,10 @@ bot_discord/
 ├── img/
 │   ├── 8ball.png
 │   ├── hilaire.png
+│   ├── hilaire2.png
 │   ├── version.jpg
 │   └── info.png
-├── Sounds/
+├── Sounds/                    # Fichiers audio pour le soundboard
 └── Others/
     └── Run Bot.bat
 ```
@@ -203,15 +220,18 @@ Global sync may take up to 1 hour to propagate.
 
 ## 🛡️ Error Handling
 
-Comprehensive French-language error system with embeds explaining :  
+Comprehensive French-language error system with centralized error handling (`cogs_auto_commands/ErrorHandler.py`) :  
 - Unknown command  
 - Missing permissions  
 - Invalid arguments  
 - Cooldown active  
 - Owner-only command  
 - Not usable in DM  
+- HTTP errors  
+- Resource not found  
+- Attribute errors  
 
-All errors are also logged to the console.
+All errors are also logged to the console with full tracebacks.
 
 Example :
 ```
@@ -236,6 +256,11 @@ Example :
 - Leveling can be enabled/disabled by admins  
 - Automatic link conversion for TikTok, Instagram, X (Twitter), and Reddit  
 - Soundboard, YouTube, and TTS share a single voice connection  
+- All paths and configurations are centralized in `main.py` (`client.paths` and `client.config`)  
+- Automatic features are separated into `cogs_auto_commands/` for better organization  
+- Error handling is centralized in `ErrorHandler.py`  
+- Banned words trigger automatic warnings via DM  
+- Protected roles are automatically managed during sanctions  
 
 ---
 

@@ -194,6 +194,8 @@ class Help_slash(commands.Cog):
         embed2.add_field(name="banword", value="Ajoute un mot à la liste des mots bannis /banword [mot] (messages perms only)")
         embed2.add_field(name="unbanword", value="Retire un mot de la liste des mots bannis /unbanword [mot] (messages perms only)")
         embed2.add_field(name="listbannedwords", value="Affiche la liste des mots bannis /listbannedwords (messages perms only)")
+        embed2.add_field(name="⚠️ Détection automatique", value="Les mots bannis sont automatiquement détectés et supprimés. L'utilisateur reçoit un warn automatique par MP avec la raison \"mot banni utilisé : [mot]\".", inline=False)
+        embed2.add_field(name="Sanctions automatiques", value="5 warns → timeout 10 min\n10 warns → timeout 10 min\n15 warns → kick automatique\n20 warns → ban automatique", inline=False)
         embeds.append(embed2)
         files.append(None)
 
@@ -214,7 +216,7 @@ class Help_slash(commands.Cog):
         embed3.add_field(name="8ball", value="Pose une question à la boule magique /8ball [votre question]")
         embed3.add_field(name="hilaire", value="Jeu Hilaire /hilaire")
         embed3.add_field(name="deldms", value="Supprime tous les DMs du bot /deldms (admin perms only)")
-        embed3.add_field(name="Conversion automatique", value="Le bot convertit automatiquement les liens:\n• TikTok → tiktokez.com\n• Instagram → eeinstagram.com\n• Twitter/X → fxtwitter.com\n• Reddit → vxreddit.com", inline=False)
+        embed3.add_field(name="🔗 Conversion automatique", value="Le bot convertit automatiquement les liens sociaux pour des embeds optimisés:\n• TikTok → tiktokez.com (résout les liens courts vm.tiktok.com)\n• Instagram → eeinstagram.com\n• Twitter/X → fxtwitter.com\n• Reddit → vxreddit.com (résout les liens courts redd.it)\n\nLes messages originaux sont supprimés et remplacés par le lien optimisé.", inline=False)
         embeds.append(embed3)
         files.append(None)
 
@@ -280,6 +282,7 @@ class Help_slash(commands.Cog):
         embed6.add_field(name="resetlevel, rsl", value="Reset tous les niveaux /resetlevel (messages perms only)")
         embed6.add_field(name="levelsettings, lvls", value="Active/désactive le système de leveling /levelsettings (admins perms only)")
         embed6.add_field(name="levelboard", value="Affiche le leaderboard des levels /levelboard")
+        embed6.add_field(name="⚡ Système automatique", value="Le leveling fonctionne automatiquement : chaque message = +1 XP. Un niveau est atteint quand XP ≥ (niveau+1)². Un message de félicitations est envoyé automatiquement.", inline=False)
         embeds.append(embed6)
         files.append(None)
 

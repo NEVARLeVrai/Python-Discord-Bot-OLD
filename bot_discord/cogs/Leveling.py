@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import json
 import asyncio
+import os
 from cogs import Help
 from cogs.Help import get_current_version
 import traceback
@@ -10,48 +11,22 @@ class Leveling(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.is_leveling_enabled = False  # par défaut, le niveau est activé
+        # Initialiser levels à None - sera chargé dans on_ready
+        self.levels = None
         
     @commands.Cog.listener()
     async def on_ready(self):
         # Utiliser le chemin centralisé depuis main.py
         levels_path = self.bot.paths['levels_json']
         # Chargement du fichier JSON qui stocke les données de niveau
-        with open(levels_path, 'r') as f:
-            self.levels = json.load(f)
+        if os.path.exists(levels_path):
+            with open(levels_path, 'r') as f:
+                self.levels = json.load(f)
+        else:
+            self.levels = {}
+            with open(levels_path, 'w') as f:
+                json.dump(self.levels, f)
  
-    @commands.Cog.listener()
-    async def on_message(self, message):
-        if message.author.bot or not self.is_leveling_enabled:
-            return  # Ignore les messages des bots et si le niveau est désactivé
-
-        author_id = str(message.author.id)
-
-        # Vérifie si l'utilisateur existe dans le fichier JSON
-        if author_id not in self.levels:
-            self.levels[author_id] = {
-                'level': 0,
-                'experience': 0
-            }
-
-        # Ajoute de l'expérience à l'utilisateur
-        self.levels[author_id]['experience'] += 1
-
-        # Vérifie si l'utilisateur a atteint un nouveau niveau
-        experience = self.levels[author_id]['experience']
-        level = self.levels[author_id]['level']
-        if experience >= (level + 1) ** 2:
-            self.levels[author_id]['level'] += 1
-            member = message.author
-            embed = discord.Embed(title="Nouveau niveau atteint !", description=f"{member.mention} a atteint le niveau {level + 1} !", color=discord.Color.green())
-            embed.set_author(name=f"{message.author.name}", icon_url=message.author.avatar)
-            embed.set_footer(text=get_current_version(self.bot))
-            await message.channel.send(embed=embed)
-
-        # Utiliser le chemin centralisé depuis main.py
-        levels_path = self.bot.paths['levels_json']
-        # Enregistre les données de niveau dans le fichier JSON
-        with open(levels_path, 'w') as f:
-            json.dump(self.levels, f)
 
     # Commande pour afficher le niveau de l'utilisateur
     @commands.command(aliases=["lvl"])
@@ -60,6 +35,10 @@ class Leveling(commands.Cog):
         member = member or ctx.author
         author_id = str(member.id)
 
+        # Vérifier si levels est chargé
+        if self.levels is None:
+            self.levels = {}
+        
         # Vérifie si l'utilisateur existe dans le fichier JSON
         if author_id not in self.levels:
             embed = discord.Embed(title=f"L'utilisateur **{member.display_name}** n'a pas encore de niveau", color=discord.Color.red())
@@ -111,7 +90,10 @@ class Leveling(commands.Cog):
             embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after= 5)
             self.levels = {}
-            self.save_levels()
+            # Utiliser le chemin centralisé depuis main.py
+            levels_path = self.bot.paths['levels_json']
+            with open(levels_path, 'w') as f:
+                json.dump(self.levels, f)
         else:
             await ctx.channel.purge(limit=msg)
             embed = discord.Embed(title="Commande annulé", color=discord.Color.red())
