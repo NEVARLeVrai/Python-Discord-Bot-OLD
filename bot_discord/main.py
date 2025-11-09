@@ -8,6 +8,7 @@ import time
 from cogs import Help
 import io
 import traceback
+import aiohttp
 
 
 
@@ -22,14 +23,14 @@ PATHS = {
     'ffmpeg_exe': r"C:/Users/Danie/Mon Drive/Bot Python Discord/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe",
     'gpt_logs': "C:/Users/danie/Mon Drive/Bot Python Discord/gptlogs.txt",
     'dalle_logs': "C:/Users/danie/Mon Drive/Bot Python Discord/dallelogs.txt",
-    'warns_json': "./Autres/warns.json",
-    'levels_json': "./Autres/levels.json",
-    'banned_words_json': "./Autres/banned_words.json",
-    'hilaire2_png': "./Autres/hilaire2.png",
-    'hilaire_png': "./Autres/hilaire.png",
-    '8ball_png': "./Autres/8ball.png",
-    'info_png': "./Autres/info.png",
-    'version_jpg': "./Autres/version.jpg",
+    'warns_json': "./json/warns.json",
+    'levels_json': "./json/levels.json",
+    'banned_words_json': "./json/banned_words.json",
+    'hilaire2_png': "./img/hilaire2.png",
+    'hilaire_png': "./img/hilaire.png",
+    '8ball_png': "./img/8ball.png",
+    'info_png': "./img/info.png",
+    'version_jpg': "./img/version.jpg",
     'sounds_dir': "./Sounds",
     'cogs_dir': "./cogs"
 }
@@ -54,22 +55,6 @@ activities = cycle([
     Activity(name='Dall E 🎈', type=discord.ActivityType.competing),
     Activity(name='ZXZ AI 😏', type=discord.ActivityType.watching),
 ])
-
-
-# Définir les commandes slash AVANT on_ready()
-# IMPORTANT: Les commandes doivent être définies avant la synchronisation
-@client.tree.command(name="ping", description="Affiche le ping du bot en ms")
-async def ping(interaction: discord.Interaction):
-    """Commande slash de test pour vérifier le ping du bot"""
-    try:
-        bot_latency = round(client.latency * 1000)
-        await interaction.response.send_message(f"Pong! {bot_latency} ms.")
-    except Exception as e:
-        try:
-            if not interaction.response.is_done():
-                await interaction.response.send_message(f"Erreur: {str(e)}", ephemeral=True)
-        except:
-            pass
 
 @client.event
 async def on_ready():
@@ -404,7 +389,8 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
 @commands.is_owner()
 async def sync_commands(ctx):
     """Re-synchronise les commandes slash (owner only)"""
-    await ctx.message.delete()
+    if isinstance(ctx.channel, discord.TextChannel):
+        await ctx.message.delete()
     
     try:
         # Synchroniser sur le serveur actuel
@@ -442,7 +428,8 @@ async def sync_commands(ctx):
 @commands.is_owner()
 async def slash_info(ctx):
     """Affiche des informations de diagnostic sur les commandes slash (owner only)"""
-    await ctx.message.delete()
+    if isinstance(ctx.channel, discord.TextChannel):
+        await ctx.message.delete()
     
     embed = discord.Embed(
         title="🔍 Diagnostic des Commandes Slash",
@@ -467,7 +454,7 @@ async def slash_info(ctx):
     
     embed.add_field(
         name="Commandes Enregistrées",
-        value=f"{len(local_commands)} commande(s): {', '.join([f'`/{cmd}`' for cmd in local_commands]) if local_commands else 'Aucune'}",
+        value=f"{len(local_commands)} commande(s): {', '.join([f'`/{cmd}`' for cmd in local_commands]) if local_commands else 'Aucune'}", 
         inline=False
     )
     
@@ -481,6 +468,124 @@ async def slash_info(ctx):
     
     embed.set_footer(text=Help.version1)
     await ctx.send(embed=embed, delete_after=30)
+
+# Commande pour effacer toutes les commandes slash
+@client.command(name="clearslash", aliases=["clearslashcommands", "deleteslash"])
+@commands.is_owner()
+async def clear_slash_commands(ctx):
+    """Efface toutes les commandes slash de Discord (owner only)"""
+    if isinstance(ctx.channel, discord.TextChannel):
+        await ctx.message.delete()
+    
+    try:
+        embed = discord.Embed(
+            title="🗑️ Suppression des commandes slash",
+            description="Suppression en cours...",
+            color=discord.Color.orange()
+        )
+        embed.set_footer(text=Help.version1)
+        status_msg = await ctx.send(embed=embed)
+        
+        # Obtenir l'application ID pour compter les commandes avant suppression
+        app_info = await client.application_info()
+        application_id = app_info.id
+        
+        # Compter les commandes avant suppression
+        try:
+            global_commands_before = await client.http.get_global_commands(application_id)
+            count_global_before = len(global_commands_before)
+        except:
+            count_global_before = 0
+        
+        guild_counts_before = {}
+        for guild in client.guilds:
+            try:
+                guild_commands = await client.http.get_guild_commands(application_id, guild.id)
+                guild_counts_before[guild.id] = len(guild_commands)
+            except:
+                guild_counts_before[guild.id] = 0
+        
+        # Méthode recommandée : clear_commands() puis sync()
+        # Cette méthode synchronise un arbre vide, ce qui supprime toutes les commandes
+        
+        # 1. Effacer les commandes globales
+        client.tree.clear_commands(guild=None)
+        await client.tree.sync(guild=None)
+        
+        # 2. Effacer les commandes par serveur
+        synced_guilds = 0
+        for guild in client.guilds:
+            try:
+                client.tree.clear_commands(guild=guild)
+                await client.tree.sync(guild=guild)
+                synced_guilds += 1
+            except Exception:
+                continue
+        
+        # Vérifier que les commandes ont bien été supprimées
+        try:
+            global_commands_after = await client.http.get_global_commands(application_id)
+            count_global_after = len(global_commands_after)
+        except:
+            count_global_after = 0
+        
+        total_deleted_global = count_global_before - count_global_after
+        total_deleted_guild = sum(guild_counts_before.values())
+        
+        # Créer l'embed de résultat
+        success_embed = discord.Embed(
+            title="✅ Commandes slash supprimées",
+            description="Toutes les commandes slash ont été supprimées.",
+            color=discord.Color.green()
+        )
+        
+        if count_global_before > 0:
+            success_embed.add_field(
+                name="Commandes globales",
+                value=f"{count_global_before} → {count_global_after} (supprimées: {total_deleted_global})",
+                inline=False
+            )
+        
+        if sum(guild_counts_before.values()) > 0:
+            success_embed.add_field(
+                name="Commandes par serveur",
+                value=f"Supprimées de {synced_guilds} serveur(s)",
+                inline=False
+            )
+        
+        success_embed.add_field(
+            name="⚠️ Important",
+            value="Les commandes ont été supprimées. **Redémarrez Discord** ou attendez quelques minutes pour que les changements soient visibles. Les commandes peuvent rester en cache côté client Discord.",
+            inline=False
+        )
+        
+        success_embed.set_footer(text=Help.version1)
+        await status_msg.edit(embed=success_embed)
+        
+        # Supprimer le message après 10 secondes
+        await asyncio.sleep(10)
+        try:
+            await status_msg.delete()
+        except:
+            pass
+        
+    except Exception as e:
+        error_embed = discord.Embed(
+            title="❌ Erreur",
+            description=f"Une erreur s'est produite : {str(e)}",
+            color=discord.Color.red()
+        )
+        error_embed.add_field(name="Détails", value=f"```{traceback.format_exc()[:1000]}```", inline=False)
+        error_embed.set_footer(text=Help.version1)
+        try:
+            await status_msg.edit(embed=error_embed)
+            await asyncio.sleep(10)
+            try:
+                await status_msg.delete()
+            except:
+                pass
+        except:
+            await ctx.send(embed=error_embed, delete_after=10)
 
 # stop the bot
 @client.command()

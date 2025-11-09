@@ -80,6 +80,7 @@ class Help(commands.Cog):
         embed_message.add_field(name="stop", value="Arrête le bot =stop (owner only)")
         embed_message.add_field(name="report", value="Signale un bug ou feedback =report [message]")
         embed_message.add_field(name="sync, syncslash, reloadslash", value="Re-synchronise les commandes slash =sync (owner only)")
+        embed_message.add_field(name="clearslash, clearslashcommands, deleteslash", value="Supprime toutes les commandes slash =clearslash (owner only)")
         embed_message.add_field(name="slashinfo, slashdebug, cmdinfo", value="Affiche des infos de diagnostic sur les commandes slash =slashinfo (owner only)")
         embed_message.set_footer(text=version1)
 

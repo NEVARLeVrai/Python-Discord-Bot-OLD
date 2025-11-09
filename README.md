@@ -25,6 +25,7 @@ Un bot Discord complet avec de nombreuses fonctionnalités, développé en Pytho
 - **`=report [message]`** - Signale un bug ou donne un feedback
 - **`=stop`** - Arrête le bot (owner only)
 - **`=sync`** ou **`=syncslash`** ou **`=reloadslash`** - Re-synchronise les commandes slash (owner only)
+- **`=clearslash`** ou **`=clearslashcommands`** ou **`=deleteslash`** - Supprime toutes les commandes slash de Discord (owner only)
 - **`=slashinfo`** ou **`=slashdebug`** ou **`=cmdinfo`** - Affiche des informations de diagnostic sur les commandes slash (owner only)
 
 ### Modération (Mods)
@@ -186,11 +187,18 @@ PATHS = {
     'gpt_token_file': "...",
     'ffmpeg_exe': "...",
     # Chemins vers les fichiers de données
-    'warns_json': "./Autres/warns.json",
-    'levels_json': "./Autres/levels.json",
-    'banned_words_json': "./Autres/banned_words.json",
+    'warns_json': "./json/warns.json",
+    'levels_json': "./json/levels.json",
+    'banned_words_json': "./json/banned_words.json",
     # Chemins vers les images
-    'hilaire2_png': "./Autres/hilaire2.png",
+    'hilaire2_png': "./img/hilaire2.png",
+    'hilaire_png': "./img/hilaire.png",
+    '8ball_png': "./img/8ball.png",
+    'info_png': "./img/info.png",
+    'version_jpg': "./img/version.jpg",
+    # Autres chemins
+    'sounds_dir': "./Sounds",
+    'cogs_dir': "./cogs"
 }
 
 CONFIG = {
@@ -213,12 +221,19 @@ bot_discord/
 │   ├── Youtube.py         # Commandes YouTube
 │   ├── Leveling.py        # Système de niveaux
 │   └── Test.py            # Cog de test
-├── Autres/                # Fichiers de données et ressources
+├── json/                   # Fichiers de données JSON
 │   ├── warns.json         # Données des warns
 │   ├── levels.json        # Données des niveaux
-│   ├── banned_words.json  # Liste des mots bannis
-│   └── *.png, *.jpg       # Images du bot
-└── Sounds/                # Fichiers audio pour le soundboard
+│   └── banned_words.json  # Liste des mots bannis
+├── img/                    # Images du bot
+│   ├── 8ball.png
+│   ├── hilaire.png
+│   ├── hilaire2.png
+│   ├── info.png
+│   └── version.jpg
+├── Sounds/                 # Fichiers audio pour le soundboard
+└── Others/                 # Autres fichiers
+    └── Run Bot.bat
 ```
 
 ## 📝 Version
@@ -246,9 +261,11 @@ Le bot supporte les commandes slash Discord. Les commandes slash sont synchronis
 ### Synchronisation des commandes slash
 - Les commandes sont synchronisées automatiquement au démarrage
 - Utilisez `=sync` pour forcer une re-synchronisation (owner only)
+- Utilisez `=clearslash` pour supprimer toutes les commandes slash (owner only)
 - Utilisez `=slashinfo` pour afficher des informations de diagnostic (owner only)
 - La synchronisation par serveur est instantanée
 - La synchronisation globale peut prendre jusqu'à 1 heure pour apparaître
+- **Note :** Après avoir supprimé les commandes avec `=clearslash`, vous devrez redémarrer Discord pour que les changements soient visibles (les commandes peuvent rester en cache côté client)
 
 ### Important
 Pour que les commandes slash fonctionnent, le bot doit être invité avec le scope `applications.commands` en plus du scope `bot`.
