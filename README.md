@@ -10,6 +10,7 @@ Un bot Discord complet avec de nombreuses fonctionnalités, développé en Pytho
 - [Structure du projet](#-structure-du-projet)
 - [Version](#-version)
 - [Commandes slash](#-commandes-slash)
+- [Gestion des erreurs](#️-gestion-des-erreurs)
 - [Notes](#-notes)
 - [Avertissements](#️-avertissements)
 - [Signalement de bugs](#-signalement-de-bugs)
@@ -229,6 +230,9 @@ bot_discord/
 - Ajout de la résolution automatique des liens courts (TikTok, Reddit)
 - Conversion améliorée des liens vers des services d'embed optimisés
 - Utilisation d'aiohttp pour des requêtes HTTP asynchrones non-bloquantes
+- **Ajout d'un système complet de gestion des erreurs avec messages en français**
+- Messages d'erreur cohérents et informatifs pour toutes les commandes
+- Gestion centralisée des erreurs (permissions, arguments, cooldowns, etc.)
 
 ## 🔧 Commandes slash
 
@@ -236,6 +240,62 @@ Le bot supporte les commandes slash Discord. Notez que les commandes slash peuve
 
 Commandes slash disponibles :
 - `/ping` - Affiche le ping du bot
+
+## 🛡️ Gestion des erreurs
+
+Le bot inclut un système complet de gestion des erreurs qui fournit des messages clairs et informatifs en français pour toutes les erreurs possibles.
+
+### Types d'erreurs gérées
+
+#### Commandes prefix (`=commande`)
+- **Commande inconnue** - Message d'aide avec suggestion d'utiliser `=helps`
+- **Permissions insuffisantes** - Liste des permissions manquantes pour l'utilisateur
+- **Permissions du bot insuffisantes** - Liste des permissions manquantes pour le bot
+- **Argument manquant** - Indication de l'argument requis manquant
+- **Argument invalide** - Message d'erreur avec suggestion de vérifier la syntaxe
+- **Commande en cooldown** - Affichage du temps d'attente restant
+- **Commande réservée au propriétaire** - Message d'accès refusé
+- **Commande non disponible en MP** - Indication que la commande ne fonctionne que dans un serveur
+- **Erreurs d'exécution** - Gestion des erreurs Discord (Forbidden, NotFound, etc.)
+
+#### Commandes slash (`/commande`)
+- Même gestion que les commandes prefix
+- Messages en mode `ephemeral` (visibles uniquement par l'utilisateur qui a exécuté la commande)
+
+### Fonctionnalités
+- ✅ Messages d'erreur en français avec embeds Discord
+- ✅ Suppression automatique des messages de commande dans les channels texte
+- ✅ Logging des erreurs dans la console pour le débogage
+- ✅ Messages avec suppression automatique après 10 secondes
+- ✅ Gestion centralisée et cohérente de toutes les erreurs
+
+### Exemple de messages d'erreur
+
+Lorsqu'une erreur survient, le bot affiche un embed Discord avec :
+- Un titre clair indiquant le type d'erreur
+- Une description détaillée en français
+- Les informations spécifiques (permissions requises, argument manquant, etc.)
+- Le footer avec la version du bot
+
+**Exemple :**
+```
+┌─────────────────────────────────────┐
+│  Permissions insuffisantes          │
+│                                     │
+│  Vous n'avez pas les permissions    │
+│  nécessaires pour utiliser cette    │
+│  commande.                          │
+│                                     │
+│  Permissions requises:              │
+│  Manage Messages, Kick Members      │
+└─────────────────────────────────────┘
+```
+
+### Avantages
+- **Expérience utilisateur améliorée** - Les utilisateurs comprennent immédiatement pourquoi une commande a échoué
+- **Cohérence** - Tous les messages d'erreur suivent le même format et sont en français
+- **Débogage facilité** - Les erreurs sont loggées dans la console pour le développement
+- **Maintenance simplifiée** - Gestion centralisée dans un seul endroit (`main.py`)
 
 ## 📝 Notes
 

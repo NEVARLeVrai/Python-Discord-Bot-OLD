@@ -60,17 +60,6 @@ async def ping(interaction: discord.Interaction):
     bot_latency = round(client.latency * 1000)
     await interaction.response.send_message(f"Pong! {bot_latency} ms.")
 
-
-@client.event
-async def on_message(message):
-    if client.user.mentioned_in(message) and not ("@everyone" in message.content or "@here" in message.content):
-        async with message.channel.typing():
-            await asyncio.sleep(1)  # Simulation de l'écriture du bot (1 seconde dans cet exemple)
-            await message.channel.send(f"Oh salut {message.author.mention}, fais ``=helps`` pour connaître les différentes commandes.")
-    else:
-        await client.process_commands(message)
-
-
 @client.event
 async def on_ready():
     await asyncio.sleep(1)
@@ -111,17 +100,292 @@ async def change_activity():
     activity = next(activities)
     await client.change_presence(activity=activity)
    
-# show if commands exist
+# Gestionnaire d'erreurs pour les commandes prefix
 @client.event    
 async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandNotFound):
-        embed = discord.Embed(title= "Commande inconnue", description="Utilisez **=helps** pour la liste des commandes", color=discord.Color.red())
-        embed.set_image(url=ctx.guild.icon)
-        embed.set_footer(text=Help.version1)
-        await ctx.send(embed=embed, delete_after=10) 
-        
+    # Supprimer le message de commande si c'est un channel texte
     if isinstance(ctx.channel, discord.TextChannel):
-        await ctx.message.delete()      
+        try:
+            await ctx.message.delete()
+        except:
+            pass
+    
+    # Commande inconnue
+    if isinstance(error, commands.CommandNotFound):
+        embed = discord.Embed(title="Commande inconnue", description="Utilisez **=helps** pour la liste des commandes", color=discord.Color.red())
+        if ctx.guild:
+            embed.set_image(url=ctx.guild.icon)
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
+        return
+    
+    # Permissions manquantes pour l'utilisateur
+    if isinstance(error, commands.MissingPermissions):
+        missing_perms = [perm.replace('_', ' ').title() for perm in error.missing_permissions]
+        perms_text = ", ".join(missing_perms)
+        embed = discord.Embed(
+            title="Permissions insuffisantes",
+            description=f"Vous n'avez pas les permissions nécessaires pour utiliser cette commande.\n\n**Permissions requises:** {perms_text}",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
+        return
+    
+    # Permissions manquantes pour le bot
+    if isinstance(error, commands.BotMissingPermissions):
+        missing_perms = [perm.replace('_', ' ').title() for perm in error.missing_permissions]
+        perms_text = ", ".join(missing_perms)
+        embed = discord.Embed(
+            title="Permissions du bot insuffisantes",
+            description=f"Le bot n'a pas les permissions nécessaires pour exécuter cette commande.\n\n**Permissions requises:** {perms_text}",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
+        return
+    
+    # Argument requis manquant
+    if isinstance(error, commands.MissingRequiredArgument):
+        embed = discord.Embed(
+            title="Argument manquant",
+            description=f"La commande `{ctx.command.name}` nécessite l'argument `{error.param.name}`.\n\nUtilisez **=helps** pour voir la syntaxe correcte.",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
+        return
+    
+    # Argument invalide
+    if isinstance(error, commands.BadArgument):
+        embed = discord.Embed(
+            title="Argument invalide",
+            description=f"L'argument fourni est invalide.\n\nUtilisez **=helps** pour voir la syntaxe correcte de la commande `{ctx.command.name}`.",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
+        return
+    
+    # Commande en cooldown
+    if isinstance(error, commands.CommandOnCooldown):
+        embed = discord.Embed(
+            title="Commande en cooldown",
+            description=f"Vous devez attendre **{error.retry_after:.1f}** secondes avant de réutiliser cette commande.",
+            color=discord.Color.orange()
+        )
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=error.retry_after)
+        return
+    
+    # Commande réservée au propriétaire
+    if isinstance(error, commands.NotOwner):
+        embed = discord.Embed(
+            title="Accès refusé",
+            description="Cette commande est réservée au propriétaire du bot.",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
+        return
+    
+    # Commande uniquement en guild
+    if isinstance(error, commands.NoPrivateMessage):
+        embed = discord.Embed(
+            title="Commande non disponible",
+            description="Cette commande ne peut pas être utilisée en message privé.",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
+        return
+    
+    # Erreur de check (pour les checks personnalisés)
+    if isinstance(error, commands.CheckFailure):
+        embed = discord.Embed(
+            title="Vérification échouée",
+            description="Vous ne remplissez pas les conditions requises pour utiliser cette commande.",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=Help.version1)
+        await ctx.send(embed=embed, delete_after=10)
+        return
+    
+    # Erreur d'invocation (erreurs générales dans la commande)
+    if isinstance(error, commands.CommandInvokeError):
+        original_error = error.original
+        # Gérer les erreurs Discord spécifiques
+        if isinstance(original_error, discord.Forbidden):
+            embed = discord.Embed(
+                title="Erreur de permissions",
+                description="Le bot n'a pas les permissions nécessaires pour effectuer cette action.",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text=Help.version1)
+            try:
+                await ctx.send(embed=embed, delete_after=10)
+            except:
+                pass
+            return
+        elif isinstance(original_error, discord.NotFound):
+            embed = discord.Embed(
+                title="Ressource introuvable",
+                description="La ressource demandée n'a pas été trouvée.",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text=Help.version1)
+            try:
+                await ctx.send(embed=embed, delete_after=10)
+            except:
+                pass
+            return
+        else:
+            # Autres erreurs - afficher un message générique
+            embed = discord.Embed(
+                title="Erreur lors de l'exécution",
+                description="Une erreur s'est produite lors de l'exécution de la commande.",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text=Help.version1)
+            try:
+                await ctx.send(embed=embed, delete_after=10)
+            except:
+                pass
+            # Logger l'erreur pour le débogage
+            command_name = ctx.command.name if ctx.command else 'inconnue'
+            print(f"\nErreur dans la commande {command_name}:")
+            traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
+            return
+    
+    # Pour toutes les autres erreurs non gérées
+    print(f"\nErreur non gérée dans {ctx.command.name if ctx.command else 'commande inconnue'}:")
+    traceback.print_exception(type(error), error, error.__traceback__)
+
+
+# Gestionnaire d'erreurs pour les commandes slash
+@client.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    # Fonction helper pour répondre à l'interaction
+    async def send_error_embed(embed):
+        try:
+            if interaction.response.is_done():
+                await interaction.followup.send(embed=embed, ephemeral=True)
+            else:
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+        except:
+            # Si ça échoue, essayer avec followup
+            try:
+                await interaction.followup.send(embed=embed, ephemeral=True)
+            except:
+                pass
+    
+    # Permissions manquantes pour l'utilisateur
+    if isinstance(error, app_commands.MissingPermissions):
+        missing_perms = [perm.replace('_', ' ').title() for perm in error.missing_permissions]
+        perms_text = ", ".join(missing_perms)
+        embed = discord.Embed(
+            title="Permissions insuffisantes",
+            description=f"Vous n'avez pas les permissions nécessaires pour utiliser cette commande.\n\n**Permissions requises:** {perms_text}",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=Help.version1)
+        await send_error_embed(embed)
+        return
+    
+    # Permissions manquantes pour le bot
+    if isinstance(error, app_commands.BotMissingPermissions):
+        missing_perms = [perm.replace('_', ' ').title() for perm in error.missing_permissions]
+        perms_text = ", ".join(missing_perms)
+        embed = discord.Embed(
+            title="Permissions du bot insuffisantes",
+            description=f"Le bot n'a pas les permissions nécessaires pour exécuter cette commande.\n\n**Permissions requises:** {perms_text}",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=Help.version1)
+        await send_error_embed(embed)
+        return
+    
+    # Commande en cooldown
+    if isinstance(error, app_commands.CommandOnCooldown):
+        embed = discord.Embed(
+            title="Commande en cooldown",
+            description=f"Vous devez attendre **{error.retry_after:.1f}** secondes avant de réutiliser cette commande.",
+            color=discord.Color.orange()
+        )
+        embed.set_footer(text=Help.version1)
+        await send_error_embed(embed)
+        return
+    
+    # Commande réservée au propriétaire
+    if isinstance(error, app_commands.NotOwner):
+        embed = discord.Embed(
+            title="Accès refusé",
+            description="Cette commande est réservée au propriétaire du bot.",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=Help.version1)
+        await send_error_embed(embed)
+        return
+    
+    # Erreur de check
+    if isinstance(error, app_commands.CheckFailure):
+        embed = discord.Embed(
+            title="Vérification échouée",
+            description="Vous ne remplissez pas les conditions requises pour utiliser cette commande.",
+            color=discord.Color.red()
+        )
+        embed.set_footer(text=Help.version1)
+        await send_error_embed(embed)
+        return
+    
+    # Erreur d'invocation
+    if isinstance(error, app_commands.CommandInvokeError):
+        original_error = error.original
+        # Gérer les erreurs Discord spécifiques
+        if isinstance(original_error, discord.Forbidden):
+            embed = discord.Embed(
+                title="Erreur de permissions",
+                description="Le bot n'a pas les permissions nécessaires pour effectuer cette action.",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text=Help.version1)
+            await send_error_embed(embed)
+            return
+        elif isinstance(original_error, discord.NotFound):
+            embed = discord.Embed(
+                title="Ressource introuvable",
+                description="La ressource demandée n'a pas été trouvée.",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text=Help.version1)
+            await send_error_embed(embed)
+            return
+        else:
+            # Autres erreurs
+            embed = discord.Embed(
+                title="Erreur lors de l'exécution",
+                description="Une erreur s'est produite lors de l'exécution de la commande.",
+                color=discord.Color.red()
+            )
+            embed.set_footer(text=Help.version1)
+            await send_error_embed(embed)
+            # Logger l'erreur pour le débogage
+            command_name = interaction.command.name if interaction.command else 'inconnue'
+            print(f"\nErreur dans la commande slash {command_name}:")
+            traceback.print_exception(type(original_error), original_error, original_error.__traceback__)
+            return
+    
+    # Pour toutes les autres erreurs non gérées
+    embed = discord.Embed(
+        title="Erreur",
+        description="Une erreur inattendue s'est produite.",
+        color=discord.Color.red()
+    )
+    embed.set_footer(text=Help.version1)
+    await send_error_embed(embed)
+    command_name = interaction.command.name if interaction.command else 'inconnue'
+    print(f"\nErreur non gérée dans la commande slash {command_name}:")
+    traceback.print_exception(type(error), error, error.__traceback__)      
 
 # stop the bot
 @client.command()

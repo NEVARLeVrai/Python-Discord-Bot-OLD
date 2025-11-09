@@ -316,25 +316,6 @@ class Soundboard(commands.Cog):
 
 
 
-    @vkick.error
-    async def vkick_error(self, ctx, error):
-        await ctx.message.delete()
-        if isinstance(error, commands.MissingPermissions):
-            embed8 = discord.Embed(title= "Erreur Vocal Kick", description="Tu na pas les permissions **Adminiristrateur**", color=discord.Color.red())
-            embed8.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed8.set_footer(text=Help.version1)
-            await ctx.send(embed = embed8, delete_after=10)
-        elif isinstance(error, commands.BadArgument):
-            embed9 = discord.Embed(title= "Erreur Vocal Kick", description="Mets un argument vailde", color=discord.Color.red())
-            embed9.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed9.set_footer(text=Help.version1)
-            await ctx.send(embed = embed9, delete_after=10)
-        else:
-            embed10 = discord.Embed(title= "Erreur Vocal Kick", description="Il y a eu un problème, lors de l'éxécution de la commande `=report` si vous voulez signaler un bug", color=discord.Color.red())
-            embed10.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed10.set_footer(text=Help.version1)
-            await ctx.send(embed = embed10, delete_after=10)
-
 
 async def setup(client):
     await client.add_cog(Soundboard(client))

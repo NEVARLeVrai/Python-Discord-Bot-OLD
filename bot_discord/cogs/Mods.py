@@ -842,26 +842,6 @@ class Mods(commands.Cog):
                 except Exception:
                     pass
 
-    @cleanraidsimple.error
-    async def cleanraidsimple_error(self, ctx, error):
-        await ctx.message.delete()
-        if isinstance(error, commands.MissingPermissions):
-            await ctx.send("You do not have permission to manage messages.")
-        elif isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send("Please enter the name of the channel to delete.")
-        else:
-            await ctx.send("An error occurred while processing the command.")
-
-    
-    @cleanraidmultiple.error
-    async def cleanraidmultiple_error(self, ctx, error):
-        await ctx.message.delete()
-        if isinstance(error, commands.MissingPermissions):
-            await ctx.send("You do not have permission to manage messages.")
-        elif isinstance(error, commands.BadArgument):
-            await ctx.send("Please enter a valid raid date and time in the format 'YYYY-MM-DD HH:MM'.")
-        else:
-            await ctx.send("An error occurred while processing the command.")
                   
 async def setup(client):
     await client.add_cog(Mods(client))
