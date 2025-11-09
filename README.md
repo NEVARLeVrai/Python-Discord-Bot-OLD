@@ -1,4 +1,4 @@
-# 🇫🇷 Python Discord Bot *(Bot and all comments are in French)*
+# Python Discord Bot *(Bot and all comments are in French)*
 
 A complete **Discord bot** with numerous features, developed in **Python** using **discord.py**.  
 ⚠️ *All bot commands, responses, and comments in the code are written in French.*
