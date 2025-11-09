@@ -393,12 +393,21 @@ async def sync_commands(ctx):
         await ctx.message.delete()
     
     try:
+        # Message intermédiaire
+        embed = discord.Embed(
+            title="🔄 Synchronisation en cours...",
+            description="Synchronisation des commandes slash...",
+            color=discord.Color.orange()
+        )
+        embed.set_footer(text=Help.version1)
+        status_msg = await ctx.send(embed=embed)
+        
         # Synchroniser sur le serveur actuel
         synced_guild = await client.tree.sync(guild=ctx.guild)
         # Synchroniser globalement
         synced_global = await client.tree.sync()
         
-        embed = discord.Embed(
+        success_embed = discord.Embed(
             title="✓ Synchronisation réussie",
             description=f"Commandes synchronisées sur '{ctx.guild.name}'",
             color=discord.Color.green()
@@ -406,22 +415,38 @@ async def sync_commands(ctx):
         
         if synced_guild or synced_global:
             count = len(synced_guild) if synced_guild else len(synced_global) if synced_global else 0
-            embed.add_field(
+            success_embed.add_field(
                 name="Commandes synchronisées",
                 value=f"{count} commande(s) disponible(s)",
                 inline=False
             )
         
-        embed.set_footer(text=Help.version1)
-        await ctx.send(embed=embed, delete_after=10)
+        success_embed.set_footer(text=Help.version1)
+        await status_msg.edit(embed=success_embed)
+        
+        # Supprimer le message après 10 secondes
+        await asyncio.sleep(10)
+        try:
+            await status_msg.delete()
+        except:
+            pass
+            
     except Exception as e:
-        embed = discord.Embed(
+        error_embed = discord.Embed(
             title="✗ Erreur de synchronisation",
             description=f"Erreur: {str(e)}",
             color=discord.Color.red()
         )
-        embed.set_footer(text=Help.version1)
-        await ctx.send(embed=embed, delete_after=10)
+        error_embed.set_footer(text=Help.version1)
+        try:
+            await status_msg.edit(embed=error_embed)
+            await asyncio.sleep(10)
+            try:
+                await status_msg.delete()
+            except:
+                pass
+        except:
+            await ctx.send(embed=error_embed, delete_after=10)
 
 # Commande pour diagnostiquer les problèmes de commandes slash
 @client.command(name="slashinfo", aliases=["slashdebug", "cmdinfo"])
@@ -477,7 +502,9 @@ async def clear_slash_commands(ctx):
     if isinstance(ctx.channel, discord.TextChannel):
         await ctx.message.delete()
     
+    status_msg = None
     try:
+        # Message intermédiaire
         embed = discord.Embed(
             title="🗑️ Suppression des commandes slash",
             description="Suppression en cours...",
@@ -571,19 +598,21 @@ async def clear_slash_commands(ctx):
         
     except Exception as e:
         error_embed = discord.Embed(
-            title="❌ Erreur",
-            description=f"Une erreur s'est produite : {str(e)}",
+            title="✗ Erreur de suppression",
+            description=f"Erreur: {str(e)}",
             color=discord.Color.red()
         )
-        error_embed.add_field(name="Détails", value=f"```{traceback.format_exc()[:1000]}```", inline=False)
         error_embed.set_footer(text=Help.version1)
         try:
-            await status_msg.edit(embed=error_embed)
-            await asyncio.sleep(10)
-            try:
-                await status_msg.delete()
-            except:
-                pass
+            if status_msg:
+                await status_msg.edit(embed=error_embed)
+                await asyncio.sleep(10)
+                try:
+                    await status_msg.delete()
+                except:
+                    pass
+            else:
+                await ctx.send(embed=error_embed, delete_after=10)
         except:
             await ctx.send(embed=error_embed, delete_after=10)
 
