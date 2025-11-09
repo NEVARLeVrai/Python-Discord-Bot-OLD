@@ -26,7 +26,7 @@ class Youtube(commands.Cog):
         await ctx.voice_client.disconnect()
         embed = discord.Embed(title="YouTube - Déconnexion", description="Déconnecté du salon vocal.", color=discord.Color.red())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed.set_footer(text=get_current_version(self.client))
+        embed.set_footer(text=get_current_version(self.bot))
         await ctx.send(embed=embed, delete_after=10)
 
     @commands.command()
@@ -36,7 +36,7 @@ class Youtube(commands.Cog):
         if not ctx.author.voice:
             embed = discord.Embed(title="YouTube - Erreur", description="Vous devez être connecté à un salon vocal pour utiliser cette commande.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=10)
             return
         
@@ -52,13 +52,13 @@ class Youtube(commands.Cog):
             except discord.errors.ClientException as e:
                 embed = discord.Embed(title="YouTube - Erreur", description=f"Conflit de connexion vocale. Le bot est peut-être utilisé par une autre fonctionnalité.", color=discord.Color.red())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
                 return
             except Exception as e:
                 embed = discord.Embed(title="YouTube - Erreur", description=f"Impossible de se connecter au canal vocal: {str(e)}", color=discord.Color.red())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
                 return
         else:
@@ -70,13 +70,13 @@ class Youtube(commands.Cog):
                 except discord.errors.ClientException as e:
                     embed = discord.Embed(title="YouTube - Erreur", description=f"Conflit de connexion vocale. Le bot est peut-être utilisé par une autre fonctionnalité.", color=discord.Color.red())
                     embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                    embed.set_footer(text=get_current_version(self.client))
+                    embed.set_footer(text=get_current_version(self.bot))
                     await ctx.send(embed=embed, delete_after=10)
                     return
                 except Exception as e:
                     embed = discord.Embed(title="YouTube - Erreur", description=f"Impossible de se déplacer vers le canal vocal: {str(e)}", color=discord.Color.red())
                     embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                    embed.set_footer(text=get_current_version(self.client))
+                    embed.set_footer(text=get_current_version(self.bot))
                     await ctx.send(embed=embed, delete_after=10)
                     return
 
@@ -93,14 +93,14 @@ class Youtube(commands.Cog):
                 self.queue.append({'title': info['title'], 'url': audio_url})
                 embed = discord.Embed(title="YouTube - File d'attente", description=f'La vidéo YouTube **"{info["title"]}"** a été ajoutée à la file d\'attente.', color=discord.Color.blue())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
             elif voice and voice.is_playing() and len(self.queue) > 0:
                 # YT joue et il y a déjà une queue YT, ajouter à la file
                 self.queue.append({'title': info['title'], 'url': audio_url})
                 embed = discord.Embed(title="YouTube - File d'attente", description=f'La vidéo YouTube **"{info["title"]}"** a été ajoutée à la file d\'attente.', color=discord.Color.blue())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
             else:
                 # Soit rien ne joue, soit Soundboard/TTS joue (queue vide = pas YT)
@@ -116,12 +116,12 @@ class Youtube(commands.Cog):
                 voice.is_playing()
                 embed = discord.Embed(title="YouTube - Lecture", description=f'Le bot est en train de jouer : **{info["title"]}**', color=discord.Color.green())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
         except Exception as e:
             embed = discord.Embed(title="YouTube - Erreur", description=f"Une erreur s'est produite : {str(e)}", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=10)
 
     def check_queue(self, ctx):
@@ -133,7 +133,7 @@ class Youtube(commands.Cog):
                 voice.is_playing()
                 asyncio.create_task(self.check_empty_channel(ctx))
                 embed = discord.Embed(title="YouTube - File d'attente", description=f'Vidéo YouTube suivante dans la file d\'attente : **{next_video["title"]}**', color=discord.Color.blue())
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
 
         self.bot.loop.create_task(inner_check_queue())
@@ -144,7 +144,7 @@ class Youtube(commands.Cog):
         if len(voice_channel.members) == 1:
             await ctx.voice_client.disconnect()
             embed = discord.Embed(title="YouTube - Déconnexion automatique", description="Aucun utilisateur détecté pendant 2 minutes. Je quitte le canal vocal.", color=discord.Color.orange())
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=10)
 
     @commands.command()
@@ -157,17 +157,17 @@ class Youtube(commands.Cog):
             if next_video:
                 embed = discord.Embed(title="YouTube - Skip", description=f"Vidéo YouTube suivante dans la file d'attente : **{next_video['title']}**", color=discord.Color.green())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
             else:
                 embed = discord.Embed(title="YouTube - Skip", description="Aucune vidéo YouTube suivante dans la file d'attente.", color=discord.Color.orange())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
         else:
             embed = discord.Embed(title="YouTube - Erreur", description="Aucune vidéo n'est en cours de lecture.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=10)
 
     @commands.command()
@@ -178,12 +178,12 @@ class Youtube(commands.Cog):
             voice_client.stop()
             embed = discord.Embed(title="YouTube - Arrêt", description="Lecture terminée.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=10)
         else:
             embed = discord.Embed(title="YouTube - Erreur", description="Aucune vidéo n'est en cours de lecture.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=10)
 
     @commands.command()
@@ -195,12 +195,12 @@ class Youtube(commands.Cog):
             self.pause_state = True
             embed = discord.Embed(title="YouTube - Pause", description="La vidéo YouTube est en pause.", color=discord.Color.orange())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=10)
         else:
             embed = discord.Embed(title="YouTube - Erreur", description="Aucune vidéo n'est en cours de lecture ou la vidéo est déjà en pause.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=10)
 
     @commands.command()
@@ -212,12 +212,12 @@ class Youtube(commands.Cog):
             self.pause_state = False
             embed = discord.Embed(title="YouTube - Reprise", description="La vidéo YouTube a repris.", color=discord.Color.green())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=10)
         else:
             embed = discord.Embed(title="YouTube - Erreur", description="Aucune vidéo n'est en pause.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=10)
 
     @commands.command()
@@ -226,13 +226,13 @@ class Youtube(commands.Cog):
         if not self.queue:
             embed = discord.Embed(title="YouTube - File d'attente", description="La file d'attente de vidéos YouTube est vide.", color=discord.Color.orange())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=10)
         else:
             queue_list = "\n".join([f"**{index + 1}.** {video['title']}" for index, video in enumerate(self.queue)])
             embed = discord.Embed(title="YouTube - File d'attente", description=f"File d'attente de vidéos YouTube :\n\n{queue_list}", color=discord.Color.blue())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=30)
 
     @commands.command()
@@ -241,7 +241,7 @@ class Youtube(commands.Cog):
         self.queue.clear()
         embed = discord.Embed(title="YouTube - File d'attente", description="La file d'attente de vidéos YouTube a été effacée.", color=discord.Color.green())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed.set_footer(text=get_current_version(self.client))
+        embed.set_footer(text=get_current_version(self.bot))
         await ctx.send(embed=embed, delete_after=10)
 
     @commands.command()
@@ -252,7 +252,7 @@ class Youtube(commands.Cog):
         if not ctx.author.voice:
             embed = discord.Embed(title="YouTube - Erreur", description="Vous devez être connecté à un salon vocal pour utiliser cette commande.", color=discord.Color.red())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=10)
             return
         
@@ -283,13 +283,13 @@ class Youtube(commands.Cog):
             except discord.errors.ClientException as e:
                 embed = discord.Embed(title="YouTube - Erreur", description=f"Conflit de connexion vocale. Le bot est peut-être utilisé par une autre fonctionnalité.", color=discord.Color.red())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
                 return
             except Exception as e:
                 embed = discord.Embed(title="YouTube - Erreur", description=f"Impossible de se connecter au canal vocal: {str(e)}", color=discord.Color.red())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
                 return
         else:
@@ -301,20 +301,20 @@ class Youtube(commands.Cog):
                 except discord.errors.ClientException as e:
                     embed = discord.Embed(title="YouTube - Erreur", description=f"Conflit de connexion vocale. Le bot est peut-être utilisé par une autre fonctionnalité.", color=discord.Color.red())
                     embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                    embed.set_footer(text=get_current_version(self.client))
+                    embed.set_footer(text=get_current_version(self.bot))
                     await ctx.send(embed=embed, delete_after=10)
                     return
                 except Exception as e:
                     embed = discord.Embed(title="YouTube - Erreur", description=f"Impossible de se déplacer vers le canal vocal: {str(e)}", color=discord.Color.red())
                     embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                    embed.set_footer(text=get_current_version(self.client))
+                    embed.set_footer(text=get_current_version(self.bot))
                     await ctx.send(embed=embed, delete_after=10)
                     return
 
         # Afficher un embed "Recherche en cours..."
         loading_embed = discord.Embed(title="YouTube - Recherche en cours", description=f"Recherche de **'{query}'** en cours...", color=discord.Color.yellow())
         loading_embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        loading_embed.set_footer(text=get_current_version(self.client))
+        loading_embed.set_footer(text=get_current_version(self.bot))
         loading_msg = await ctx.send(embed=loading_embed)
 
         try:
@@ -328,7 +328,7 @@ class Youtube(commands.Cog):
             if not info or 'entries' not in info:
                 embed = discord.Embed(title="YouTube - Recherche", description="Aucun résultat trouvé pour cette recherche.", color=discord.Color.orange())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
                 return
             
@@ -337,7 +337,7 @@ class Youtube(commands.Cog):
             if not videos:
                 embed = discord.Embed(title="YouTube - Recherche", description="Aucune vidéo valide trouvée pour cette recherche.", color=discord.Color.orange())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
                 return
 
@@ -355,7 +355,7 @@ class Youtube(commands.Cog):
             if not valid_videos:
                 embed = discord.Embed(title="YouTube - Recherche", description="Aucune vidéo valide trouvée pour cette recherche.", color=discord.Color.orange())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
                 return
 
@@ -363,11 +363,11 @@ class Youtube(commands.Cog):
             result_text = "\n".join(result_list)
             embed = discord.Embed(title="YouTube - Résultats de recherche", description=f"Résultats pour **'{query}'** :\n\n{result_text}", color=discord.Color.blue())
             embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=60)
 
             embed2 = discord.Embed(title="YouTube - Choix", description="Veuillez choisir le numéro du résultat à jouer.", color=discord.Color.blue())
-            embed2.set_footer(text=get_current_version(self.client))
+            embed2.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed2, delete_after=15)
 
             def check(message):
@@ -380,7 +380,7 @@ class Youtube(commands.Cog):
             
             # Extraire l'URL audio de la vidéo sélectionnée (maintenant avec toutes les infos)
             loading_embed = discord.Embed(title="YouTube - Téléchargement", description="Téléchargement des informations de la vidéo...", color=discord.Color.yellow())
-            loading_embed.set_footer(text=get_current_version(self.client))
+            loading_embed.set_footer(text=get_current_version(self.bot))
             loading_msg = await ctx.send(embed=loading_embed)
             
             try:
@@ -392,7 +392,7 @@ class Youtube(commands.Cog):
             except Exception as e:
                 await loading_msg.delete()
                 embed = discord.Embed(title="YouTube - Erreur", description=f"Erreur lors de l'extraction de l'URL audio : {str(e)}", color=discord.Color.red())
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
                 return
 
@@ -406,14 +406,14 @@ class Youtube(commands.Cog):
                 self.queue.append({'title': video_title, 'url': audio_url})
                 embed = discord.Embed(title="YouTube - File d'attente", description=f'La vidéo YouTube **"{video_title}"** a été ajoutée à la file d\'attente.', color=discord.Color.blue())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
             elif voice and voice.is_playing() and len(self.queue) > 0:
                 # YT joue et il y a déjà une queue YT, ajouter à la file
                 self.queue.append({'title': video_title, 'url': audio_url})
                 embed = discord.Embed(title="YouTube - File d'attente", description=f'La vidéo YouTube **"{video_title}"** a été ajoutée à la file d\'attente.', color=discord.Color.blue())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
             else:
                 # Soit rien ne joue, soit Soundboard/TTS joue (queue vide = pas YT)
@@ -428,7 +428,7 @@ class Youtube(commands.Cog):
                 voice.is_playing()
                 embed = discord.Embed(title="YouTube - Lecture", description=f'Le bot est en train de jouer : **"{video_title}"**', color=discord.Color.green())
                 embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-                embed.set_footer(text=get_current_version(self.client))
+                embed.set_footer(text=get_current_version(self.bot))
                 await ctx.send(embed=embed, delete_after=10)
 
         except asyncio.TimeoutError:
@@ -437,7 +437,7 @@ class Youtube(commands.Cog):
             except:
                 pass
             embed = discord.Embed(title="YouTube - Expiration", description="La recherche a expiré. Veuillez relancer la commande si vous souhaitez rechercher à nouveau.", color=discord.Color.orange())
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=10)
 
         except Exception as e:
@@ -446,7 +446,7 @@ class Youtube(commands.Cog):
             except:
                 pass
             embed = discord.Embed(title="YouTube - Erreur", description=f"Une erreur s'est produite lors de la recherche : {str(e)}", color=discord.Color.red())
-            embed.set_footer(text=get_current_version(self.client))
+            embed.set_footer(text=get_current_version(self.bot))
             await ctx.send(embed=embed, delete_after=10)
             print(f"Erreur search: {e}")  # Pour debug
 
@@ -456,7 +456,7 @@ class Youtube(commands.Cog):
         self.loop_state = not self.loop_state  # Inverser l'état de la boucle
         embed = discord.Embed(title="YouTube - Boucle", description=f"Boucle **{'activée' if self.loop_state else 'désactivée'}**.", color=discord.Color.green() if self.loop_state else discord.Color.red())
         embed.set_author(name=f"Demandé par {ctx.author.name}", icon_url=ctx.author.avatar)
-        embed.set_footer(text=get_current_version(self.client))
+        embed.set_footer(text=get_current_version(self.bot))
         await ctx.send(embed=embed, delete_after=10)
 
 async def setup(bot):

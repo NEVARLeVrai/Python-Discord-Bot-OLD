@@ -12,7 +12,7 @@ import json
 def get_version_info(client):
     """Lit les informations de version depuis le fichier update_logs.json"""
     try:
-        update_logs_path = client.paths.get('update_logs_json')
+        update_logs_path = client.paths['update_logs_json']
         if os.path.exists(update_logs_path):
             with open(update_logs_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)

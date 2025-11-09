@@ -8,7 +8,6 @@ import json
 import os
 from cogs import Help
 from cogs.Help import get_current_version
-from main import PATHS
 
 class Mods_slash(commands.Cog):
     def __init__(self, client):
@@ -55,7 +54,7 @@ class Mods_slash(commands.Cog):
         """Charge les données depuis les fichiers JSON si le cog n'est pas disponible"""
         # Charger les warns
         try:
-            warns_path = PATHS.get('warns_json', './json/warns.json')
+            warns_path = self.client.paths['warns_json']
             if os.path.exists(warns_path):
                 with open(warns_path, 'r', encoding='utf-8') as f:
                     self.warns = json.load(f)
@@ -69,7 +68,7 @@ class Mods_slash(commands.Cog):
         
         # Charger les mots bannis
         try:
-            banned_words_path = PATHS.get('banned_words_json', './json/banned_words.json')
+            banned_words_path = self.client.paths['banned_words_json']
             if os.path.exists(banned_words_path):
                 with open(banned_words_path, 'r', encoding='utf-8') as f:
                     self.banned_words = json.load(f)
@@ -89,7 +88,7 @@ class Mods_slash(commands.Cog):
         else:
             # Sauvegarder directement dans le fichier
             try:
-                warns_path = PATHS.get('warns_json', './json/warns.json')
+                warns_path = self.client.paths['warns_json']
                 with open(warns_path, 'w', encoding='utf-8') as f:
                     json.dump(self.warns, f, indent=2)
             except Exception as e:
@@ -103,7 +102,7 @@ class Mods_slash(commands.Cog):
         else:
             # Sauvegarder directement dans le fichier
             try:
-                banned_words_path = PATHS.get('banned_words_json', './json/banned_words.json')
+                banned_words_path = self.client.paths['banned_words_json']
                 with open(banned_words_path, 'w', encoding='utf-8') as f:
                     json.dump(self.banned_words, f, ensure_ascii=False, indent=2)
             except Exception as e:
@@ -116,7 +115,43 @@ class Mods_slash(commands.Cog):
             # Si le cog n'est toujours pas disponible, charger depuis les fichiers
             if not self.mods_cog:
                 self._load_from_files()
+        
+        # Toujours s'assurer que le cog Mods a les attributs nécessaires initialisés
+        if self.mods_cog:
+            self._ensure_mods_cog_initialized()
+        
         return self.mods_cog
+    
+    def _ensure_mods_cog_initialized(self):
+        """S'assure que le cog Mods a tous ses attributs initialisés"""
+        if not self.mods_cog:
+            return
+        
+        # Vérifier et initialiser warns si nécessaire
+        if not hasattr(self.mods_cog, 'warns') or self.mods_cog.warns is None:
+            try:
+                warns_path = self.client.paths['warns_json']
+                if os.path.exists(warns_path):
+                    with open(warns_path, 'r', encoding='utf-8') as f:
+                        self.mods_cog.warns = json.load(f)
+                else:
+                    self.mods_cog.warns = {}
+            except Exception as e:
+                print(f"Erreur lors du chargement des warns dans le cog Mods: {e}")
+                self.mods_cog.warns = {}
+        
+        # Vérifier et initialiser banned_words si nécessaire
+        if not hasattr(self.mods_cog, 'banned_words') or self.mods_cog.banned_words is None:
+            try:
+                banned_words_path = self.client.paths['banned_words_json']
+                if os.path.exists(banned_words_path):
+                    with open(banned_words_path, 'r', encoding='utf-8') as f:
+                        self.mods_cog.banned_words = json.load(f)
+                else:
+                    self.mods_cog.banned_words = []
+            except Exception as e:
+                print(f"Erreur lors du chargement des mots bannis dans le cog Mods: {e}")
+                self.mods_cog.banned_words = []
     
     def ensure_warns_loaded(self):
         """S'assure que les warns sont chargés"""
@@ -136,12 +171,39 @@ class Mods_slash(commands.Cog):
             elif not self.banned_words:
                 self._load_from_files()
     
-    def create_fake_ctx(self, interaction):
+    def create_fake_ctx(self, interaction, use_edit_response=False):
         """Crée un FakeCtx pour utiliser les méthodes du cog original avec les commandes slash"""
         class FakeMessage:
             """Fake message avec méthode delete async qui ne fait rien"""
             async def delete(self):
                 pass  # Ne rien faire pour les commandes slash
+        
+        # Compteur pour savoir si c'est le premier message après defer
+        first_message = {'value': True}
+        
+        async def send_wrapper(*args, **kwargs):
+            """Wrapper pour send qui gère delete_after avec les webhooks et edit_original_response"""
+            # Si c'est le premier message après defer et qu'on veut utiliser edit_original_response
+            if use_edit_response and first_message['value']:
+                first_message['value'] = False
+                # Pour edit_original_response, on ignore delete_after (on veut que le message reste)
+                kwargs.pop('delete_after', None)
+                try:
+                    # Utiliser edit_original_response pour remplacer le message "réfléchit..."
+                    return await interaction.edit_original_response(*args, **kwargs)
+                except (discord.NotFound, discord.HTTPException) as e:
+                    # Si l'édition échoue, utiliser followup.send
+                    print(f"Erreur lors de l'édition de la réponse originale: {e}")
+                    return await interaction.followup.send(*args, **kwargs)
+            else:
+                # Pour les messages suivants ou si use_edit_response=False
+                delete_after = kwargs.pop('delete_after', None)
+                if delete_after is not None:
+                    # Les webhooks ne supportent pas delete_after, donc on utilise channel.send à la place
+                    if interaction.channel:
+                        return await interaction.channel.send(*args, **kwargs, delete_after=delete_after)
+                # Utiliser le followup normal
+                return await interaction.followup.send(*args, **kwargs)
         
         class FakeCtx:
             """Fake context pour réutiliser la logique des commandes préfixées"""
@@ -149,7 +211,7 @@ class Mods_slash(commands.Cog):
                 self.author = interaction.user
                 self.guild = interaction.guild
                 self.channel = interaction.channel
-                self.send = interaction.followup.send
+                self.send = send_wrapper
                 self.message = FakeMessage()
         
         return FakeCtx(interaction)
@@ -164,16 +226,17 @@ class Mods_slash(commands.Cog):
             await interaction.response.send_message("Vous n'avez pas la permission de gérer les messages.", ephemeral=True)
             return
         
+        # Defer immédiatement pour éviter les problèmes de double réponse
+        await interaction.response.defer(ephemeral=False)
+        
         max_amount = 70
         if amount > max_amount:
-            await interaction.response.send_message(f"Vous ne pouvez pas supprimer plus de **{max_amount}** messages à la fois. Le nombre a été limité à {max_amount}.", ephemeral=True)
+            await interaction.followup.send(f"Vous ne pouvez pas supprimer plus de **{max_amount}** messages à la fois. Le nombre a été limité à {max_amount}.", ephemeral=False)
             amount = max_amount
         
         if amount < 1:
-            await interaction.response.send_message("Le nombre de messages à supprimer doit être supérieur à 0.", ephemeral=True)
+            await interaction.followup.send("Le nombre de messages à supprimer doit être supérieur à 0.", ephemeral=True)
             return
-        
-        await interaction.response.defer(ephemeral=False)
         
         try:
             # purge() supprime les messages, mais pas le message de l'interaction
@@ -426,7 +489,7 @@ class Mods_slash(commands.Cog):
             if hasattr(mods_cog, 'warns'):
                 self.warns = mods_cog.warns
             # Utiliser la logique du cog original
-            fake_ctx = self.create_fake_ctx(interaction)
+            fake_ctx = self.create_fake_ctx(interaction, use_edit_response=True)
             await mods_cog.resetwarn(fake_ctx, member)
         else:
             await interaction.response.send_message("Le système de warns n'est pas disponible. Le cog Mods n'a pas été trouvé.", ephemeral=True)
@@ -448,7 +511,7 @@ class Mods_slash(commands.Cog):
             self.mods_cog = mods_cog
             if hasattr(mods_cog, 'warns'):
                 self.warns = mods_cog.warns
-            fake_ctx = self.create_fake_ctx(interaction)
+            fake_ctx = self.create_fake_ctx(interaction, use_edit_response=True)
             await mods_cog.warnboard(fake_ctx)
         else:
             await interaction.response.send_message("Le système de warns n'est pas disponible. Le cog Mods n'a pas été trouvé.", ephemeral=True)
@@ -484,7 +547,7 @@ class Mods_slash(commands.Cog):
                 self.mods_cog = self.client.get_cog('Mods')
             
             if self.mods_cog:
-                fake_ctx = self.create_fake_ctx(interaction)
+                fake_ctx = self.create_fake_ctx(interaction, use_edit_response=True)
                 await self.mods_cog.ban(fake_ctx, target, modreaseon=reason)
             else:
                 # Fallback si le cog n'est pas disponible
@@ -558,7 +621,7 @@ class Mods_slash(commands.Cog):
             self.mods_cog = mods_cog
             if hasattr(mods_cog, 'banned_words'):
                 self.banned_words = mods_cog.banned_words
-            fake_ctx = self.create_fake_ctx(interaction)
+            fake_ctx = self.create_fake_ctx(interaction, use_edit_response=True)
             await mods_cog.banword(fake_ctx, word=word)
         else:
             await interaction.response.send_message("Le système de mots bannis n'est pas disponible. Le cog Mods n'a pas été trouvé.", ephemeral=True)
@@ -582,7 +645,7 @@ class Mods_slash(commands.Cog):
             self.mods_cog = mods_cog
             if hasattr(mods_cog, 'banned_words'):
                 self.banned_words = mods_cog.banned_words
-            fake_ctx = self.create_fake_ctx(interaction)
+            fake_ctx = self.create_fake_ctx(interaction, use_edit_response=True)
             await mods_cog.unbanword(fake_ctx, word=word)
         else:
             await interaction.response.send_message("Le système de mots bannis n'est pas disponible. Le cog Mods n'a pas été trouvé.", ephemeral=True)
@@ -605,7 +668,7 @@ class Mods_slash(commands.Cog):
             self.mods_cog = mods_cog
             if hasattr(mods_cog, 'banned_words'):
                 self.banned_words = mods_cog.banned_words
-            fake_ctx = self.create_fake_ctx(interaction)
+            fake_ctx = self.create_fake_ctx(interaction, use_edit_response=True)
             await mods_cog.listbannedwords(fake_ctx)
         else:
             await interaction.response.send_message("Le système de mots bannis n'est pas disponible. Le cog Mods n'a pas été trouvé.", ephemeral=True)

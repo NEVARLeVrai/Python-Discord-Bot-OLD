@@ -6,7 +6,6 @@ import os
 import asyncio
 from cogs import Help
 from cogs.Help import get_current_version
-from main import PATHS
 
 class Leveling_slash(commands.Cog):
     def __init__(self, client):
@@ -43,7 +42,7 @@ class Leveling_slash(commands.Cog):
     def _load_from_files(self):
         """Charge les données depuis le fichier JSON si le cog n'est pas disponible"""
         try:
-            levels_path = PATHS.get('levels_json', './json/levels.json')
+            levels_path = self.client.paths['levels_json']
             if os.path.exists(levels_path):
                 with open(levels_path, 'r', encoding='utf-8') as f:
                     self.levels = json.load(f)
@@ -62,7 +61,30 @@ class Leveling_slash(commands.Cog):
             # Si le cog n'est toujours pas disponible, charger depuis les fichiers
             if not self.leveling_cog:
                 self._load_from_files()
+        
+        # Toujours s'assurer que le cog Leveling a les attributs nécessaires initialisés
+        if self.leveling_cog:
+            self._ensure_leveling_cog_initialized()
+        
         return self.leveling_cog
+    
+    def _ensure_leveling_cog_initialized(self):
+        """S'assure que le cog Leveling a tous ses attributs initialisés"""
+        if not self.leveling_cog:
+            return
+        
+        # Vérifier et initialiser levels si nécessaire
+        if not hasattr(self.leveling_cog, 'levels') or self.leveling_cog.levels is None:
+            try:
+                levels_path = self.client.paths['levels_json']
+                if os.path.exists(levels_path):
+                    with open(levels_path, 'r', encoding='utf-8') as f:
+                        self.leveling_cog.levels = json.load(f)
+                else:
+                    self.leveling_cog.levels = {}
+            except Exception as e:
+                print(f"Erreur lors du chargement des levels dans le cog Leveling: {e}")
+                self.leveling_cog.levels = {}
     
     def ensure_levels_loaded(self):
         """S'assure que les levels sont chargés"""
@@ -81,7 +103,7 @@ class Leveling_slash(commands.Cog):
         else:
             # Sauvegarder directement dans le fichier
             try:
-                levels_path = PATHS.get('levels_json', './json/levels.json')
+                levels_path = self.client.paths['levels_json']
                 with open(levels_path, 'w', encoding='utf-8') as f:
                     json.dump(self.levels, f, indent=2)
             except Exception as e:

@@ -87,7 +87,7 @@ async def on_ready():
 
 async def load():
     # Charger les cogs avec commandes prefix (=)
-    cogs_dir = PATHS['cogs_dir']
+    cogs_dir = client.paths['cogs_dir']
     for filename in os.listdir(cogs_dir):
         # Ignorer __init__.py
         if filename.endswith(".py") and filename != "__init__.py":
@@ -98,7 +98,7 @@ async def load():
                 print(f"Erreur lors du chargement de cogs.{filename[:-3]}: {e}")
     
     # Charger les cogs avec commandes slash (/)
-    cogs_slash_dir = PATHS['cogs_slash_dir']
+    cogs_slash_dir = client.paths['cogs_slash_dir']
     if os.path.exists(cogs_slash_dir):
         for filename in os.listdir(cogs_slash_dir):
             # Ignorer __init__.py
@@ -723,7 +723,7 @@ async def stop(ctx):
     bot_latency = round(client.latency * 1000)
     embed = discord.Embed(title= "Arrêt", description=f"Le Bot s'arrête Ping {bot_latency} ms.", color=discord.Color.red())
     embed.set_footer(text=get_current_version(client))
-    with open(PATHS['hilaire2_png'], "rb") as f:
+    with open(client.paths['hilaire2_png'], "rb") as f:
         image_data = f.read()
     embed.set_thumbnail(url="attachment://hilaire2.png")
     embed.set_image(url=ctx.guild.icon)
@@ -744,7 +744,7 @@ if __name__ == "__main__":
         print("")
         print("Démarrage du bot...")
         print("")
-        with open(PATHS['token_file'], "r") as f:
+        with open(client.paths['token_file'], "r") as f:
             token = f.read().strip()
         client.run(token)
     except Exception as e:
