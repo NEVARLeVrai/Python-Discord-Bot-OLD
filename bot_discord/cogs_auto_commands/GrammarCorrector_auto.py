@@ -91,6 +91,19 @@ class GrammarCorrector_auto(commands.Cog):
         else:
             self.settings = {}
             self.save_settings()
+        
+        # Afficher les statistiques de synchronisation
+        if self.settings:
+            enabled_servers = sum(1 for s in self.settings.values() if isinstance(s, dict) and s.get('enabled', False))
+            total_servers = len(self.settings)
+            total_corrections = sum(
+                s.get('statistics', {}).get('total_corrections', 0) 
+                for s in self.settings.values() 
+                if isinstance(s, dict)
+            )
+            print(f"GrammarCorrector_auto: Système de correction synchronisé. {enabled_servers}/{total_servers} serveur(s) avec le correcteur activé ({total_corrections} correction(s) au total).")
+        else:
+            print("GrammarCorrector_auto: Système de correction synchronisé. 0 serveur(s) configuré(s).")
     
     def migrate_settings(self, data):
         """Migre l'ancien format vers le nouveau format amélioré"""
@@ -299,8 +312,15 @@ class GrammarCorrector_auto(commands.Cog):
         # et on laisse LanguageTool essayer avec chaque langue
         return len(configured_languages) > 1
     
-    async def correct_text_single_language(self, text, lang_code):
-        """Corrige un texte avec une seule langue spécifique (sans récursion)"""
+    async def correct_text_single_language(self, text, lang_code, preferences=None):
+        """Corrige un texte avec une seule langue spécifique (sans récursion)
+        preferences: dict avec check_style, check_grammar, check_spelling"""
+        if preferences is None:
+            preferences = {'check_style': True, 'check_grammar': True, 'check_spelling': True}
+        check_style = preferences.get('check_style', True)
+        check_grammar = preferences.get('check_grammar', True)
+        check_spelling = preferences.get('check_spelling', True)
+        
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(
@@ -320,6 +340,32 @@ class GrammarCorrector_auto(commands.Cog):
                         return None, []
                     
                     matches = result.get('matches', [])
+                    if not matches:
+                        return None, []
+                    
+                    # Filtrer les matches selon les préférences (style, grammar, spelling)
+                    filtered_matches = []
+                    for match in matches:
+                        rule_category = match.get('rule', {}).get('category', {}).get('id', '').upper()
+                        rule_category_name = match.get('rule', {}).get('category', {}).get('name', '').upper()
+                        rule_id = match.get('rule', {}).get('id', '').upper()
+                        
+                        # Détecter le type d'erreur
+                        is_style = 'TYPOGRAPHY' in rule_category or 'STYLE' in rule_category or 'TYPOGRAPHY' in rule_category_name or 'STYLE' in rule_category_name or 'TYPOGRAPHY' in rule_id or 'STYLE' in rule_id
+                        is_grammar = 'GRAMMAR' in rule_category or 'GRAMMAR' in rule_category_name or 'GRAMMAR' in rule_id
+                        is_spelling = 'SPELLING' in rule_category or 'SPELLING' in rule_category_name or 'SPELLING' in rule_id or 'ORTHOGRAPHY' in rule_category
+                        
+                        # Filtrer selon les préférences
+                        if is_style and not check_style:
+                            continue
+                        if is_grammar and not check_grammar:
+                            continue
+                        if is_spelling and not check_spelling:
+                            continue
+                        
+                        filtered_matches.append(match)
+                    
+                    matches = filtered_matches
                     if not matches:
                         return None, []
                     
@@ -343,6 +389,13 @@ class GrammarCorrector_auto(commands.Cog):
                         best_replacement = replacements[0].get('value', '')
                         
                         if best_replacement and best_replacement != error_text:
+                            # Ignorer les corrections qui ajoutent une majuscule au début si l'original n'en avait pas
+                            if offset == 0 and text and len(text) > 0:
+                                original_first = text[0]
+                                replacement_first = best_replacement[0] if best_replacement else ''
+                                if original_first.islower() and replacement_first.isupper():
+                                    continue  # Ne pas corriger la majuscule manquante
+                            
                             corrected_text = corrected_text[:offset] + best_replacement + corrected_text[offset + length:]
                             errors_info.append({
                                 'error': error_text,
@@ -357,9 +410,10 @@ class GrammarCorrector_auto(commands.Cog):
         except Exception as e:
             return None, []
     
-    async def correct_text_multilingual(self, text, languages_list):
+    async def correct_text_multilingual(self, text, languages_list, preferences=None):
         """Corrige un texte multilingue en essayant chaque langue configurée
-        et en combinant les meilleurs résultats"""
+        et en combinant les meilleurs résultats
+        preferences: dict avec check_style, check_grammar, check_spelling"""
         all_corrections = []
         
         for lang in languages_list:
@@ -367,7 +421,7 @@ class GrammarCorrector_auto(commands.Cog):
                 continue  # On traite 'auto' séparément
             
             # Utiliser la fonction directe sans récursion
-            corrected, errors = await self.correct_text_single_language(text, lang)
+            corrected, errors = await self.correct_text_single_language(text, lang, preferences)
             if corrected and errors:
                 all_corrections.append({
                     'lang': lang,
@@ -383,12 +437,19 @@ class GrammarCorrector_auto(commands.Cog):
         best = max(all_corrections, key=lambda x: x['error_count'])
         return best['corrected'], best['errors']
     
-    async def correct_text(self, text, languages=None):
+    async def correct_text(self, text, languages=None, guild_id=None):
         """Corrige le texte et retourne le texte corrigé et les erreurs
         Si languages est None, utilise 'auto' pour la détection automatique
         Si languages est une liste, essaie chaque langue jusqu'à trouver des erreurs
-        Gère automatiquement les phrases multilingues"""
+        Gère automatiquement les phrases multilingues
+        guild_id: ID du serveur pour récupérer les préférences (check_style, etc.)"""
         try:
+            # Récupérer les préférences pour filtrer les corrections de style si nécessaire
+            preferences = self.get_preferences(guild_id) if guild_id else {'check_style': True, 'check_grammar': True, 'check_spelling': True}
+            check_style = preferences.get('check_style', True)
+            check_grammar = preferences.get('check_grammar', True)
+            check_spelling = preferences.get('check_spelling', True)
+            
             # Déterminer la langue à utiliser
             if languages and 'auto' in languages:
                 lang_to_use = 'auto'
@@ -438,6 +499,33 @@ class GrammarCorrector_auto(commands.Cog):
                     # Vérifier si l'API a détecté une langue différente (utile pour le mode auto)
                     # Cette information peut être utilisée pour améliorer l'analyse contextuelle si nécessaire
                     detected_language = result.get('language', {}).get('detectedLanguage', {}).get('code', None)
+                    
+                    if not matches:
+                        return None, []
+                    
+                    # Filtrer les matches selon les préférences (style, grammar, spelling)
+                    filtered_matches = []
+                    for match in matches:
+                        rule_category = match.get('rule', {}).get('category', {}).get('id', '').upper()
+                        rule_category_name = match.get('rule', {}).get('category', {}).get('name', '').upper()
+                        rule_id = match.get('rule', {}).get('id', '').upper()
+                        
+                        # Détecter le type d'erreur
+                        is_style = 'TYPOGRAPHY' in rule_category or 'STYLE' in rule_category or 'TYPOGRAPHY' in rule_category_name or 'STYLE' in rule_category_name or 'TYPOGRAPHY' in rule_id or 'STYLE' in rule_id
+                        is_grammar = 'GRAMMAR' in rule_category or 'GRAMMAR' in rule_category_name or 'GRAMMAR' in rule_id
+                        is_spelling = 'SPELLING' in rule_category or 'SPELLING' in rule_category_name or 'SPELLING' in rule_id or 'ORTHOGRAPHY' in rule_category
+                        
+                        # Filtrer selon les préférences
+                        if is_style and not check_style:
+                            continue  # Ignorer les corrections de style si check_style est False
+                        if is_grammar and not check_grammar:
+                            continue  # Ignorer les corrections de grammaire si check_grammar est False
+                        if is_spelling and not check_spelling:
+                            continue  # Ignorer les corrections d'orthographe si check_spelling est False
+                        
+                        filtered_matches.append(match)
+                    
+                    matches = filtered_matches
                     
                     if not matches:
                         return None, []
@@ -564,6 +652,13 @@ class GrammarCorrector_auto(commands.Cog):
                         
                         # Appliquer la correction si on a trouvé une bonne suggestion
                         if best_replacement and best_replacement != error_text:
+                            # Ignorer les corrections qui ajoutent une majuscule au début si l'original n'en avait pas
+                            if offset == 0 and text and len(text) > 0:
+                                original_first = text[0]
+                                replacement_first = best_replacement[0] if best_replacement else ''
+                                if original_first.islower() and replacement_first.isupper():
+                                    continue  # Ne pas corriger la majuscule manquante
+                            
                             # Filtrer uniquement les corrections vraiment absurdes (sauf pour grammaire/accord)
                             rule_category = match.get('rule', {}).get('category', {}).get('id', '').lower()
                             is_grammar_check = is_agreement or is_grammar or is_conjugation or 'grammar' in rule_category or 'conjugation' in match.get('message', '').lower() or 'agreement' in rule_category
@@ -614,6 +709,12 @@ class GrammarCorrector_auto(commands.Cog):
                                                 if offset < len(corrected_text) and offset + length <= len(corrected_text):
                                                     best_replacement = replacements[0].get('value', '')
                                                     if best_replacement:
+                                                        # Ignorer les corrections qui ajoutent une majuscule au début si l'original n'en avait pas
+                                                        if offset == 0 and text and len(text) > 0:
+                                                            original_first = text[0]
+                                                            replacement_first = best_replacement[0] if best_replacement else ''
+                                                            if original_first.islower() and replacement_first.isupper():
+                                                                continue  # Ne pas corriger la majuscule manquante
                                                         corrected_text = corrected_text[:offset] + best_replacement + corrected_text[offset + length:]
                         except:
                             pass  # Si la vérification échoue, on garde les corrections déjà appliquées
@@ -626,7 +727,7 @@ class GrammarCorrector_auto(commands.Cog):
                         # essayer avec chaque langue individuellement (pour phrases multilingues)
                         if lang_to_use == 'auto' and languages and len(languages) > 1 and 'auto' not in languages:
                             # Essayer avec chaque langue configurée pour gérer les phrases multilingues
-                            multilingual_result = await self.correct_text_multilingual(text, languages)
+                            multilingual_result = await self.correct_text_multilingual(text, languages, preferences)
                             if multilingual_result[0]:  # Si on a trouvé des corrections
                                 return multilingual_result
                         return None, []
@@ -668,8 +769,8 @@ class GrammarCorrector_auto(commands.Cog):
         # Récupérer les langues configurées pour ce serveur
         languages = self.get_languages(message.guild.id)
         
-        # Corriger le texte avec les langues configurées
-        corrected_text, errors = await self.correct_text(message.content, languages)
+        # Corriger le texte avec les langues configurées et les préférences du serveur
+        corrected_text, errors = await self.correct_text(message.content, languages, guild_id=message.guild.id)
         
         # Si des erreurs ont été trouvées et que le texte a vraiment changé
         if corrected_text and errors and corrected_text != message.content:
