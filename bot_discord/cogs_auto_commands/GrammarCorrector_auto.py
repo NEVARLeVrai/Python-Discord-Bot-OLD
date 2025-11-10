@@ -123,7 +123,7 @@ class GrammarCorrector_auto(commands.Cog):
                         'min_confidence': settings.get('preferences', {}).get('min_confidence', 0.5),
                         'check_grammar': settings.get('preferences', {}).get('check_grammar', True),
                         'check_spelling': settings.get('preferences', {}).get('check_spelling', True),
-                        'check_style': settings.get('preferences', {}).get('check_style', False)
+                        'check_style': settings.get('preferences', {}).get('check_style', True)
                     },
                     'statistics': {
                         'total_corrections': settings.get('statistics', {}).get('total_corrections', 0),
