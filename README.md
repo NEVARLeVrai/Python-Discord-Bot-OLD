@@ -72,8 +72,46 @@ A complete **Discord bot** with numerous features, developed in **Python** using
 - **`=hilaire`** – Hilaire game  
 - **`=deldms`** – Delete all bot DMs *(admin only)*  
 - **`=tts [language] [volume] [text]`** – Make the bot speak (e.g. `=tts fr 3.0 Hello`)  
+- **`=correcteur [activer/désactiver]`** – Enable/disable automatic grammar and spelling corrector *(manage messages only)*  
+- **`=langue [ajouter/enlever] [code]`** – Manage corrector languages (e.g. `=langue ajouter en`) *(manage messages only)*  
 
 > The bot automatically joins the user's voice channel and stays connected for other audio features.
+
+---
+
+### 🔍 Automatic Grammar & Spelling Corrector
+Automatically corrects grammar and spelling errors in messages using **LanguageTool API v2** (updated for 2025):  
+- **40+ supported languages** (French, English, Spanish, German, Italian, Portuguese, Russian, Polish, Dutch, and more)  
+- **Auto mode** – Automatically detects the language of each message  
+- **Advanced contextual analysis** – Uses full sentence and text context to analyze grammar, conjugation, agreement, and sentence structure  
+- **Comprehensive correction** – Applies all detected corrections with priority on grammar, conjugation, and agreement errors  
+- **Two-pass verification** – Performs a second pass to catch remaining agreement errors after initial corrections  
+- **Smart replacement selection** – Examines up to 10 suggestions per error and selects the best based on context  
+- **Reply format** – Replies to the original message with an embed showing only the corrected text  
+- **Per-server configuration** – Each server can enable/disable and configure languages independently  
+- **Intelligent filtering** – Filters out questionable corrections while preserving all grammar/conjugation/agreement fixes  
+
+**Commands:**
+- **`=correcteur activer`** / **`/correcteur activer`** – Enable corrector for the server  
+- **`=correcteur désactiver`** / **`/correcteur désactiver`** – Disable corrector for the server  
+- **`=langue ajouter [code]`** / **`/langue ajouter [langue]`** – Add a language (e.g. `=langue ajouter en`)  
+- **`=langue enlever [code]`** / **`/langue enlever [langue]`** – Remove a language  
+- **`=langue`** / **`/langue`** – Display configured and supported languages  
+
+**Configuration:**
+- Settings are saved per server in `json/grammar_corrector.json`
+- Default language: French (`fr`)
+- Multiple languages can be configured (uses auto-detection when multiple languages are set)
+- Auto mode replaces all languages and detects the language automatically
+
+**Technical Details (2025):**
+- Uses LanguageTool API v2 (`https://api.languagetool.org/v2/check`)
+- API limits: 20 requests/IP/minute, 20 KB per request
+- LanguageTool uses daily snapshots model (updated regularly)
+- Supports grammar, conjugation, agreement, spelling, and style corrections
+- Context-aware correction using full sentence and text context
+- Priority system: Grammar/Conjugation/Agreement errors get highest priority (score 3.0)
+- Two-pass correction: Initial correction + verification pass for agreement errors
 
 ---
 
@@ -192,11 +230,13 @@ bot_discord/
 │   ├── Mods_auto.py           # Détection mots bannis + warns automatiques
 │   ├── Leveling_auto.py       # Système de leveling automatique
 │   ├── Utility_auto.py        # Conversion automatique des liens sociaux
+│   ├── GrammarCorrector_auto.py  # Correcteur automatique d'orthographe et grammaire
 │   └── Help_auto.py           # Forwarding automatique des MPs
 ├── json/
 │   ├── warns.json             # Warns organisés par serveur: {guild_id: {user_id: {...}}}
 │   ├── levels.json
 │   ├── banned_words.json      # Mots bannis organisés par serveur: {guild_id: [words]}
+│   ├── grammar_corrector.json  # Paramètres du correcteur par serveur: {guild_id: {enabled, languages}}
 │   └── update_logs.json
 ├── img/
 │   ├── 8ball.png
@@ -260,13 +300,15 @@ Example :
 - The bot deletes command messages after execution  
 - Leveling can be enabled/disabled by admins  
 - Automatic link conversion for TikTok, Instagram, X (Twitter), and Reddit  
+- Automatic grammar and spelling correction with 40+ supported languages  
 - Soundboard, YouTube, and TTS share a single voice connection  
 - All paths and configurations are centralized in `main.py` (`client.paths` and `client.config`)  
 - Automatic features are separated into `cogs_auto_commands/` for better organization  
 - Error handling is centralized in `ErrorHandler.py`  
 - Banned words trigger automatic warnings via DM  
 - Protected roles are automatically managed during sanctions  
-- **Warns and banned words are server-specific** – Each server has independent moderation data
+- **Warns and banned words are server-specific** – Each server has independent moderation data  
+- **Grammar corrector settings are server-specific** – Each server can configure languages independently
 
 ---
 

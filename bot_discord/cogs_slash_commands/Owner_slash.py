@@ -12,11 +12,30 @@ class Owner_slash(commands.Cog):
 
     async def is_owner(self, interaction: discord.Interaction):
         """Vérifie si l'utilisateur est le propriétaire"""
+        # Méthode 1: Utiliser la méthode native de discord.py
+        try:
+            if await self.client.is_owner(interaction.user):
+                return True
+        except:
+            pass
+        
+        # Méthode 2: Vérifier via application_info (pour les bots en équipe)
         try:
             app_info = await self.client.application_info()
-            return interaction.user.id == app_info.owner.id
+            if isinstance(app_info.owner, discord.Team):
+                # Si le bot appartient à une équipe, vérifier si l'utilisateur est dans l'équipe
+                return interaction.user.id in [member.id for member in app_info.owner.members]
+            else:
+                # Si c'est un propriétaire unique
+                return interaction.user.id == app_info.owner.id
         except:
-            return False
+            pass
+        
+        # Méthode 3: Vérifier via l'ID dans la config (fallback)
+        if hasattr(self.client, 'config') and 'target_user_id' in self.client.config:
+            return interaction.user.id == self.client.config['target_user_id']
+        
+        return False
 
     @app_commands.command(name="stop", description="Arrête le bot (owner only)")
     async def stop(self, interaction: discord.Interaction):
