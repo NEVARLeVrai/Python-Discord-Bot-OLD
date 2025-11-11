@@ -1,6 +1,11 @@
 {
-  "current_version": "Bot V.1011-25",
+  "current_version": "Bot V.1111-25",
   "history": [
+    {
+      "version": "Bot V.1111-25",
+      "date": "11/11/2025",
+      "logs": "enlèvement de la correction automatique d'orthographe et de grammaire"
+    },
     {
       "version": "Bot V.1011-25",
       "date": "10/11/2025",
