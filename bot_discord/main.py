@@ -26,7 +26,6 @@ PATHS = {
     'warns_json': "./json/warns.json",
     'levels_json': "./json/levels.json",
     'banned_words_json': "./json/banned_words.json",
-    'grammar_corrector_json': "./json/grammar_corrector.json",
     'hilaire2_png': "./img/hilaire2.png",
     'hilaire_png': "./img/hilaire.png",
     '8ball_png': "./img/8ball.png",

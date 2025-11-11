@@ -223,10 +223,7 @@ class Help(commands.Cog):
         embed_message5.add_field(name="8ball, magicball", value="Pose une question à la boule magique =8ball [votre question]")
         embed_message5.add_field(name="hilaire", value="Jeu Hilaire =hilaire")
         embed_message5.add_field(name="deldms, delmp", value="Supprime tous les DMs du bot =deldms (admin perms only)")
-        embed_message5.add_field(name="correcteur, grammar", value="Active/désactive le correcteur automatique =correcteur [activer/désactiver] (messages perms only)")
-        embed_message5.add_field(name="langue, langues, languages, lang", value="Gère les langues du correcteur =langue [ajouter/enlever] [code] (ex: =langue ajouter en) (messages perms only)")
         embed_message5.add_field(name="🔗 Conversion automatique", value="Le bot convertit automatiquement les liens sociaux pour des embeds optimisés:\n• TikTok → tiktokez.com (résout les liens courts vm.tiktok.com)\n• Instagram → eeinstagram.com\n• Twitter/X → fxtwitter.com\n• Reddit → vxreddit.com (résout les liens courts redd.it)\n\nLes messages originaux sont supprimés et remplacés par le lien optimisé.", inline=False)
-        embed_message5.add_field(name="🔍 Correcteur automatique", value="Le bot corrige automatiquement l'orthographe et la grammaire des messages:\n• Supporte 40+ langues (fr, en, es, de, it, pt, etc.)\n• Mode auto pour détection automatique de langue\n• Répond au message avec la phrase corrigée et les fautes en gras\n• Configuration par serveur (activé/désactivé + langues)\n• Analyse contextuelle (grammaire, conjugaison, liaisons)", inline=False)
         
         embed_message6 = discord.Embed(
             title="Helps MP",

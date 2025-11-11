@@ -216,10 +216,7 @@ class Help_slash(commands.Cog):
         embed3.add_field(name="8ball", value="Pose une question à la boule magique /8ball [votre question]")
         embed3.add_field(name="hilaire", value="Jeu Hilaire /hilaire")
         embed3.add_field(name="deldms", value="Supprime tous les DMs du bot /deldms (admin perms only)")
-        embed3.add_field(name="correcteur", value="Active/désactive le correcteur automatique /correcteur [action] (messages perms only)")
-        embed3.add_field(name="langue", value="Gère les langues du correcteur /langue [action] [langue] (messages perms only)")
         embed3.add_field(name="🔗 Conversion automatique", value="Le bot convertit automatiquement les liens sociaux pour des embeds optimisés:\n• TikTok → tiktokez.com (résout les liens courts vm.tiktok.com)\n• Instagram → eeinstagram.com\n• Twitter/X → fxtwitter.com\n• Reddit → vxreddit.com (résout les liens courts redd.it)\n\nLes messages originaux sont supprimés et remplacés par le lien optimisé.", inline=False)
-        embed3.add_field(name="🔍 Correcteur automatique", value="Le bot corrige automatiquement l'orthographe et la grammaire des messages:\n• Supporte 40+ langues (fr, en, es, de, it, pt, etc.)\n• Mode auto pour détection automatique de langue\n• Répond au message avec la phrase corrigée et les fautes en gras\n• Configuration par serveur (activé/désactivé + langues)\n• Analyse contextuelle (grammaire, conjugaison, liaisons)", inline=False)
         embeds.append(embed3)
         files.append(None)
 
