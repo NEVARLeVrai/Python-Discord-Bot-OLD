@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-import asyncio
 import re
 import aiohttp
 from urllib.parse import urlparse, urljoin
@@ -149,10 +148,8 @@ class Utility_auto(commands.Cog):
             # Si on ne peut pas supprimer le message (embeds, permissions, etc.), on continue
             pass
         
-        async with message.channel.typing():
-            await asyncio.sleep(1)
-            await message.channel.send(f"[{message.author.display_name} - {platform}]({modified_link})")
+        # Envoyer le message modifié sans indicateur de frappe pour éviter les rate limits
+        await message.channel.send(f"[{message.author.display_name} - {platform}]({modified_link})")
 
 async def setup(client):
     await client.add_cog(Utility_auto(client))
-
